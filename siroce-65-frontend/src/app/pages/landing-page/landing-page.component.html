@@ -1,0 +1,81 @@
+<!-- src/app/pages/landing-page/landing-page.component.html -->
+<div class="landing-page">
+
+  <!-- ═══════════════════════════════════════════════════════
+       ENCABEZADO OSCURO (compartido con Login)
+       ═══════════════════════════════════════════════════════ -->
+  <app-public-header></app-public-header>
+
+  <!-- ═══════════════════════════════════════════════════════
+       ① PORTADA (HERO SECTION)
+       ═══════════════════════════════════════════════════════ -->
+  <section class="hero-section">
+    <img src="escudo.png" alt="Escudo 65 Cía" class="hero-icon">
+    <p class="hero-eyebrow">SIROCE-65</p>
+    <h1 class="hero-title">65 Compañía de Bomberos Voluntarios</h1>
+    <p class="hero-subtitle">
+      Sistema Integrado de Registro y Control de Operaciones de Emergencia —
+      protegiendo a nuestra comunidad las 24 horas del día.
+    </p>
+
+    <div class="hero-contacts">
+      <div class="contact-buttons">
+        <a mat-flat-button color="primary" class="btn-emergencia" [href]="telefonoEmergenciasTel">
+          <mat-icon aria-hidden="true">call</mat-icon>
+          Llamar a Emergencias ({{ telefonoEmergencias }})
+        </a>
+
+        <a class="btn-whatsapp" [href]="whatsappUrl" target="_blank" rel="noopener noreferrer" aria-label="Escríbenos por WhatsApp">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+            <path d="M12.004 2C6.486 2 2.01 6.477 2.01 11.995c0 2.115.552 4.099 1.598 5.85L2 22l4.29-1.594a9.947 9.947 0 0 0 5.714 1.789h.005c5.518 0 9.994-4.477 9.994-9.995C22.003 6.476 17.522 2 12.004 2zm0 18.16h-.004a8.147 8.147 0 0 1-4.153-1.14l-.298-.176-3.09 1.148 1.03-3.01-.194-.31a8.126 8.126 0 0 1-1.246-4.352c0-4.514 3.673-8.187 8.194-8.187 2.19 0 4.245.854 5.792 2.4a8.13 8.13 0 0 1 2.398 5.789c-.002 4.514-3.674 8.185-8.19 8.185z"/>
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.71.306 1.263.489 1.695.626.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+          </svg>
+          WhatsApp
+        </a>
+      </div>
+
+      <a class="hero-contact-item hero-contact-map" [href]="direccionMapsUrl" target="_blank" rel="noopener noreferrer" aria-label="Ver ubicación en Google Maps">
+        <mat-icon aria-hidden="true">place</mat-icon>
+        {{ direccionEstacion }}
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════
+       ② ACERCA DE NOSOTROS
+       ═══════════════════════════════════════════════════════ -->
+  <section class="about-section">
+    <h2 class="section-title">Acerca de Nosotros</h2>
+    <p class="section-lead">Comprometidos con la seguridad y el bienestar de nuestra comunidad.</p>
+
+    <div class="about-grid">
+
+      <mat-card class="about-card">
+        <div class="about-card-icon"><mat-icon aria-hidden="true">history_edu</mat-icon></div>
+        <h3>Nuestra Historia</h3>
+        <p>
+          <strong>Raíces de Valor y Servicios:</strong> El Benemérito Cuerpo de Bomberos Voluntarios de Guatemala es una institución de servicio público, autónoma y apolítica, fundada el 16 de agosto de 1951 por iniciativa del Excelentísimo Embajador de Chile en Guatemala, Licenciado Rodrigo González Allendes.<br><br>
+          <strong>Un Legado de Disciplina:</strong> Integrado por hombres y mujeres con vocación voluntaria, la institución se rige por los principios de disciplina, honor y abnegación, brindando atención oportuna en incendios, rescates, emergencias médicas y desastres naturales.
+        </p>
+      </mat-card>
+
+      <mat-card class="about-card">
+        <div class="about-card-icon"><mat-icon aria-hidden="true">flag</mat-icon></div>
+        <h3>Misión</h3>
+        <p>
+          Somos una institución autónoma que brinda servicios profesionales de prevención, atención de emergencias, incendios y desastres en todo el territorio nacional. Actuamos de manera técnica, en coordinación con instituciones nacionales e internacionales, contribuyendo a la reducción del riesgo y al bienestar integral de la sociedad guatemalteca, garantizando la protección de la vida, los bienes y el entorno, con disciplina, honor y abnegación.
+        </p>
+      </mat-card>
+
+      <mat-card class="about-card">
+        <div class="about-card-icon"><mat-icon aria-hidden="true">visibility</mat-icon></div>
+        <h3>Visión</h3>
+        <p>
+          Ser una institución líder y referente nacional e internacional en la prevención y gestión integral de emergencias y desastres, reconocida por su compromiso, el profesionalismo ético de mujeres y hombres y la innovación tecnológica, que fortalece la resiliencia comunitaria y contribuye al desarrollo sostenible de Guatemala.
+        </p>
+      </mat-card>
+
+    </div>
+  </section>
+
+</div>

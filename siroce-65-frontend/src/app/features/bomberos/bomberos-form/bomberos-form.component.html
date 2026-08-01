@@ -1,0 +1,174 @@
+<div class="bf-dialog-wrapper">
+
+  <div mat-dialog-title class="bf-header">
+    <div class="bf-header-icon-wrap">
+      <mat-icon>{{ isEditMode ? 'edit' : 'person_add' }}</mat-icon>
+    </div>
+    <div class="bf-header-text">
+      <h2 class="bf-title">
+        {{ isEditMode ? 'Editar Bombero' : 'Nuevo Bombero' }}
+      </h2>
+      <p class="bf-subtitle">
+        {{ isEditMode ? 'Modifica los datos del bombero seleccionado' : 'Completa el formulario para registrar al personal' }}
+      </p>
+    </div>
+    <button mat-icon-button class="bf-close-btn" (click)="onCancel()" aria-label="Cerrar diálogo" [disabled]="isSaving">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="bf-content">
+
+    <mat-progress-bar *ngIf="isSaving" mode="indeterminate" class="bf-progress"></mat-progress-bar>
+
+    <div class="bf-error-box" *ngIf="errorMsg" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMsg }}</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate id="bf-form" class="bf-form">
+
+      <p class="section-label">
+        <mat-icon class="section-icon">person_outline</mat-icon>
+        Datos Personales
+      </p>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Nombre(s)*</mat-label>
+          <input matInput formControlName="NOMBRE" placeholder="Ej. Carlos Alberto" maxlength="100" (keypress)="soloLetras($event)">
+          <mat-error *ngIf="f['NOMBRE'].hasError('required')">Obligatorio.</mat-error>
+          <mat-error *ngIf="f['NOMBRE'].hasError('minlength')">Mínimo 2 caracteres.</mat-error>
+          <mat-error *ngIf="f['NOMBRE'].hasError('pattern')">Solo se permiten letras y acentos.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Apellido(s)*</mat-label>
+          <input matInput formControlName="APELLIDO" placeholder="Ej. Hernández López" maxlength="100" (keypress)="soloLetras($event)">
+          <mat-error *ngIf="f['APELLIDO'].hasError('required')">Obligatorio.</mat-error>
+          <mat-error *ngIf="f['APELLIDO'].hasError('minlength')">Mínimo 2 caracteres.</mat-error>
+          <mat-error *ngIf="f['APELLIDO'].hasError('pattern')">Solo se permiten letras y acentos.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>DPI (13 dígitos sin espacios)*</mat-label>
+          <input matInput formControlName="DPI" placeholder="Ej. 1234567890101" maxlength="13" (keypress)="soloNumeros($event)">
+          <mat-icon matSuffix style="color: rgba(255,255,255,0.4)">badge</mat-icon>
+          <mat-error *ngIf="f['DPI'].hasError('required')">Obligatorio.</mat-error>
+          <mat-error *ngIf="f['DPI'].hasError('pattern')">Debe contener exactamente 13 números.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Teléfono*</mat-label>
+          <input matInput formControlName="TELEFONO" type="tel" placeholder="Ej. 55551234" maxlength="8"
+            (keypress)="soloNumeros($event)">
+          <mat-icon matSuffix style="color: rgba(255,255,255,0.4)">phone</mat-icon>
+          <mat-error *ngIf="f['TELEFONO'].hasError('required')">Obligatorio.</mat-error>
+          <mat-error *ngIf="f['TELEFONO'].hasError('pattern')">Debe tener exactamente 8 números.</mat-error>
+        </mat-form-field>
+        </div>
+
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field" style="width: 100%;">
+          <mat-label>Correo Institucional*</mat-label>
+          <input 
+            matInput 
+            formControlName="CORREO" 
+            type="email" 
+            placeholder="Ej. bombero@estacion.com"
+            style="text-transform: lowercase;"
+            (input)="form.patchValue({ CORREO: form.get('CORREO')?.value?.toLowerCase() })">
+          <mat-icon matSuffix style="color: rgba(255,255,255,0.4)">mail</mat-icon>
+          <mat-error *ngIf="f['CORREO'].hasError('required')">El correo es obligatorio.</mat-error>
+          <mat-error *ngIf="f['CORREO'].hasError('email')">Formato de correo no válido.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-divider class="section-divider"></mat-divider>
+
+      <p class="section-label">
+        <mat-icon class="section-icon">shield</mat-icon>
+        Datos Operativos
+      </p>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Grado Jerárquico*</mat-label>
+          <mat-select formControlName="ID_GRADO" aria-label="Seleccionar rango">
+            <mat-option *ngFor="let g of grados" [value]="g.ID_GRADO">{{ g.GRADO }}</mat-option>
+          </mat-select>
+          <mat-icon matSuffix style="color: rgba(255,255,255,0.4)">military_tech</mat-icon>
+          <mat-error *ngIf="f['ID_GRADO'].hasError('required')">Selecciona un grado.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Cargo o Función*</mat-label>
+          <mat-select formControlName="CARGO" aria-label="Seleccionar cargo">
+            <mat-option value="Bombero de Línea">Bombero de Línea</mat-option>
+            <mat-option value="Piloto / Conductor">Piloto / Conductor</mat-option>
+            <mat-option value="Paramédico / Prehospitalario">Paramédico / Prehospitalario</mat-option>
+            <mat-option value="Despachador / Radiooperador">Despachador / Radiooperador</mat-option>
+            <mat-option value="Jefe de Turno">Jefe de Turno</mat-option>
+            <mat-option value="Jefe de Compañía">Jefe de Compañía</mat-option>
+          </mat-select>
+          <mat-icon matSuffix style="color: rgba(255,255,255,0.4)">work</mat-icon>
+          <mat-error *ngIf="f['CARGO'].hasError('required')">Selecciona un cargo.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Estado Operativo*</mat-label>
+          <mat-select formControlName="ID_ESTADO_B" aria-label="Seleccionar estado">
+            <mat-option *ngFor="let e of estados" [value]="e.ID_ESTADO_B">{{ e.ESTADO }}</mat-option>
+          </mat-select>
+          <mat-icon matSuffix style="color: rgba(255,255,255,0.4)">toggle_on</mat-icon>
+          <mat-error *ngIf="f['ID_ESTADO_B'].hasError('required')">Selecciona un estado.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Turno Asignado*</mat-label>
+          <mat-select formControlName="TURNO" aria-label="Seleccionar turno">
+            <mat-option *ngFor="let t of turnos" [value]="t">{{ t }}</mat-option>
+          </mat-select>
+          <mat-icon matSuffix style="color: rgba(255,255,255,0.4)">schedule</mat-icon>
+          <mat-error *ngIf="f['TURNO'].hasError('required')">Selecciona un turno.</mat-error>
+        </mat-form-field>
+      </div>
+      
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field" style="width: 100%;">
+          <mat-label>Fecha de Ingreso*</mat-label>
+          <input 
+            matInput 
+            formControlName="FECHA_INGRESO" 
+            [matDatepicker]="picker" 
+            placeholder="DD/MM/AAAA" 
+            readonly 
+            (click)="picker.open()"
+            style="cursor: pointer;">
+          <mat-datepicker-toggle matIconSuffix [for]="picker" style="color: rgba(255,255,255,0.4)"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="f['FECHA_INGRESO'].hasError('required')">Obligatorio.</mat-error>
+        </mat-form-field>
+      </div>
+
+    </form>
+
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="bf-actions" align="end">
+    <button mat-button class="btn-cancel" type="button" (click)="onCancel()" [disabled]="isSaving">
+      <mat-icon>close</mat-icon> Cancelar
+    </button>
+    <button mat-raised-button color="primary" class="btn-save" type="submit" form="bf-form" [disabled]="form.invalid || isSaving">
+      <mat-icon *ngIf="!isSaving">save</mat-icon>
+      <mat-icon *ngIf="isSaving" class="spin-icon">sync</mat-icon>
+      <span>{{ isSaving ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Registrar') }}</span>
+    </button>
+  </mat-dialog-actions>
+
+</div>

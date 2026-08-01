@@ -1,0 +1,287 @@
+<div class="sf-wrapper">
+
+  <div mat-dialog-title class="sf-header">
+    <div class="sf-header-icon">
+      <mat-icon>{{ isEditMode ? 'edit' : 'add_alert' }}</mat-icon>
+    </div>
+    <div class="sf-header-text">
+      <h2 class="sf-title">{{ isEditMode ? 'Editar Registro' : 'Nueva Emergencia' }}</h2>
+      <p class="sf-subtitle">
+        {{ isEditMode ? 'Actualiza y finaliza los datos del servicio' : 'Registra un nuevo servicio o emergencia atendida' }}
+      </p>
+    </div>
+    <button mat-icon-button class="sf-close" (click)="onCancel()" [disabled]="isSaving">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="sf-content">
+    <mat-progress-bar *ngIf="isSaving" mode="indeterminate" class="sf-progress"></mat-progress-bar>
+    <div class="sf-error" *ngIf="errorMsg" role="alert">
+      <mat-icon>error_outline</mat-icon><span>{{ errorMsg }}</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate id="sf-form" class="sf-form">
+
+      <!-- 🔴 FASE 1: RECEPCIÓN DE LLAMADA -->
+      <p class="section-label" style="color: #ffb74d;"><mat-icon class="section-icon" style="color: #ffb74d;">record_voice_over</mat-icon> 1. Recepción de Llamada</p>
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Nombre del solicitante</mat-label>
+          <input matInput formControlName="nombreSolicitante" placeholder="Ej. Carlos Mendoza" maxlength="100" (keypress)="validarLetras($event)">
+          <mat-icon matSuffix class="field-icon">person</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Teléfono de contacto</mat-label>
+          <input matInput formControlName="telefonoSolicitante" placeholder="Ej. 55554444" type="text" maxlength="8" pattern="[0-9]{8}" (keypress)="soloNumeros($event)">
+          <mat-icon matSuffix class="field-icon">phone</mat-icon>
+          <mat-error *ngIf="form.get('telefonoSolicitante')?.hasError('pattern')">
+            El teléfono debe tener exactamente 8 números
+          </mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- 🔴 FASE 2: UBICACIÓN -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field" style="flex: 2;">
+          <mat-label>Dirección del incidente**</mat-label>
+          <input matInput formControlName="direccionServicio" placeholder="Ej. 1ra Avenida, Zona 1">
+          <mat-icon matSuffix class="field-icon">location_on</mat-icon>
+        </mat-form-field>
+      
+        <mat-form-field appearance="outline" class="form-field" style="flex: 3;">
+          <mat-label>Referencia (Puntos conocidos)</mat-label>
+          <input matInput formControlName="referenciaLugar" placeholder="Ej. Frente a la despensa">
+          <mat-icon matSuffix class="field-icon">map</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <!-- 🔴 FASE 3: NATURALEZA DEL EVENTO -->
+      <p class="section-label" style="margin-top: 15px;"><mat-icon class="section-icon">warning_amber</mat-icon> 2. Naturaleza del Evento</p>
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Tipo de evento*</mat-label>
+          <mat-select formControlName="idTipoServicio" (selectionChange)="onTipoServicioChange($event.value)">
+            <mat-select-trigger>
+              <span class="select-trigger-wrap" *ngIf="f['idTipoServicio'].value">
+                <mat-icon class="trigger-icon">{{ getTipoIconActivo() }}</mat-icon>
+                <span>{{ getTipoLabelActivo() }}</span>
+              </span>
+              <span class="trigger-placeholder" *ngIf="!f['idTipoServicio'].value">Seleccionar tipo…</span>
+            </mat-select-trigger>
+            <mat-option *ngFor="let t of tipos" [value]="t.ID_TIPO_S">
+              <div class="option-row">
+                <mat-icon [ngClass]="'opt-icon'">{{ getTipoIcon(t.TIPO_SERVICIO) }}</mat-icon>
+                <span>{{ t.TIPO_SERVICIO }}</span>
+              </div>
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="f['idTipoServicio'].hasError('required')">Selecciona el tipo de emergencia.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Fecha del evento*</mat-label>
+          <input matInput [matDatepicker]="picker" formControlName="fechaServicio" placeholder="Elige una fecha" readonly (click)="picker.open()">
+          <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+          <mat-datepicker #picker></mat-datepicker>
+          <mat-error *ngIf="f['fechaServicio'].hasError('required')">La fecha es obligatoria.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="form-field full-width">
+        <mat-label>Descripción inicial de lo que sucede</mat-label>
+        <textarea matInput formControlName="descripcion" placeholder="Detalles iniciales relatados por el solicitante..." rows="2" maxlength="150"></textarea>
+      </mat-form-field>
+
+      <mat-divider class="section-divider"></mat-divider>
+
+      <!-- 🔥 FASE 3.5: ESTADO DE LA EMERGENCIA Y CANCELACIÓN -->
+      <p class="section-label" style="margin-top: 15px; color: #90caf9;"><mat-icon class="section-icon" style="color: #90caf9;">flag</mat-icon> 3. Estado de la Emergencia</p>
+      
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field full-width">
+          <mat-label>Estado Operativo</mat-label>
+          <mat-select formControlName="estado">
+            <mat-option value="Pendiente">Pendiente</mat-option>
+            <mat-option value="En Atención">En Atención</mat-option>
+            <mat-option value="Redactando Informe">Redactando Informe</mat-option>
+            <mat-option value="Finalizada">Finalizada</mat-option>
+            <mat-divider></mat-divider>
+            <mat-option value="Cancelada (Error de cabina)" style="color: #ef5350; font-weight: 500;">Cancelada (Error de cabina)</mat-option>
+            <mat-option value="Falsa Alarma" style="color: #ef5350; font-weight: 500;">Falsa Alarma</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <ng-container *ngIf="esCancelado">
+        <div style="background: rgba(239, 83, 80, 0.05); border: 1px dashed rgba(239, 83, 80, 0.4); border-radius: 8px; padding: 15px; margin-top: 10px; margin-bottom: 20px;">
+          <p class="section-label" style="color: #ef5350; font-weight: 500; margin-bottom: 15px;">
+            <mat-icon class="section-icon" style="color: #ef5350;">cancel</mat-icon> Motivo de la Cancelación (Obligatorio)
+          </p>
+          
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field full-width">
+              <mat-label>Seleccione el motivo principal</mat-label>
+              <mat-select formControlName="motivoCancelacion">
+                <mat-option value="Llamada de broma / Falsa alarma malintencionada">Llamada de broma / Falsa alarma malintencionada</mat-option>
+                <mat-option value="Incidente duplicado (Ya reportado)">Incidente duplicado (Ya reportado)</mat-option>
+                <mat-option value="Atendido por otra institución (PNC, Cruz Roja, etc.)">Atendido por otra institución (PNC, Cruz Roja, etc.)</mat-option>
+                <mat-option value="Cancelado por el reportante">Cancelado por el reportante</mat-option>
+                <mat-option value="Situación controlada por civiles">Situación controlada por civiles</mat-option>
+                <mat-option value="Dirección inexistente / No se encontró el incidente">Dirección inexistente / No se encontró el incidente</mat-option>
+                <mat-option value="Falsa alarma de buena fe (Confusión)">Falsa alarma de buena fe (Confusión)</mat-option>
+                <mat-option value="Error de digitación en cabina">Error de digitación en cabina</mat-option>
+                <mat-option value="Otros (Especificar)">Otros (Especificar)</mat-option>
+              </mat-select>
+              <mat-error *ngIf="f['motivoCancelacion'].hasError('required')">Debe seleccionar un motivo.</mat-error>
+            </mat-form-field>
+          </div>
+          
+          <div class="form-row" *ngIf="f['motivoCancelacion'].value === 'Otros (Especificar)'">
+            <mat-form-field appearance="outline" class="form-field full-width">
+              <mat-label>Justificación detallada (Obligatoria)</mat-label>
+              <textarea matInput formControlName="justificacionCancelacion" placeholder="Describa brevemente qué ocurrió..." rows="2"></textarea>
+              <mat-error *ngIf="f['justificacionCancelacion'].hasError('required')">La justificación es obligatoria.</mat-error>
+            </mat-form-field>
+          </div>
+        </div>
+      </ng-container>
+
+      <!-- 🟢 FASE 4: CIERRE OPERATIVO (Ahora SÍ permite unidades en Falsa Alarma, solo esconde pacientes) -->
+      <ng-container *ngIf="permitirCierre">
+        <div style="background: rgba(0, 188, 212, 0.05); border: 1px solid rgba(0, 188, 212, 0.2); border-radius: 8px; padding: 15px; margin-top: 15px;">
+          <p class="section-label" style="color: #00bcd4; font-weight: 500; margin-bottom: 15px;">
+            <mat-icon class="section-icon" style="color: #00bcd4;">post_add</mat-icon> 4. Cierre Operativo (Informe Final)
+          </p>
+
+          <!-- 🔴 Los pacientes SÍ se esconden si es Cancelado o Falsa Alarma -->
+          <ng-container *ngIf="!esServicioBase && !esCancelado">
+            <div formArrayName="pacientes">
+              <div *ngFor="let pac of pacientesArray.controls; let i = index" [formGroupName]="i" 
+                   style="background: var(--bg-inset); border: 1px dashed var(--border-strong); border-radius: 6px; padding: 12px; margin-bottom: 15px; position: relative;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <span style="font-size: 12px; color: #90caf9; font-weight: bold;">
+                    <mat-icon style="font-size: 14px; width: 14px; height: 14px; vertical-align: middle;">person</mat-icon> VÍCTIMA {{ i + 1 }}
+                  </span>
+                  <button mat-icon-button type="button" *ngIf="pacientesArray.length > 1" (click)="quitarPaciente(i)" style="color: #ef5350; transform: scale(0.8);">
+                    <mat-icon>close</mat-icon>
+                  </button>
+                </div>
+
+                <div class="form-row">
+                  <mat-form-field appearance="outline" class="form-field" style="flex: 2;">
+                    <mat-label>Nombre del paciente</mat-label>
+                    <input matInput formControlName="nombrePaciente" placeholder="Ej. Juan Pérez" maxlength="150">
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="form-field" style="flex: 1; max-width: 100px;">
+                    <mat-label>Edad</mat-label>
+                    <input matInput formControlName="edadPaciente" type="number" min="0" max="120" (keydown)="bloquearCaracteres($event)" placeholder="Ej. 35">
+                    <mat-hint>Opcional</mat-hint>
+                    <mat-error *ngIf="pac.get('edadPaciente')?.hasError('max')">Inválida</mat-error>
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline" class="form-field" style="flex: 1; max-width: 120px;">
+                    <mat-label>¿Fallecido?</mat-label>
+                    <mat-select formControlName="fallecido">
+                      <mat-option value="NO">NO</mat-option>
+                      <mat-option value="SI" style="color: #ef5350; font-weight: bold;">SÍ</mat-option>
+                    </mat-select>
+                  </mat-form-field>
+                </div>
+              </div>
+            </div>
+
+            <button mat-stroked-button type="button" (click)="agregarPaciente()" style="border-color: rgba(144, 202, 249, 0.4); color: #90caf9; margin-bottom: 15px; width: 100%;">
+              <mat-icon>group_add</mat-icon> Agregar otra víctima
+            </button>
+
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Acompañante o Familiar</mat-label>
+                <input matInput formControlName="acompanante" placeholder="Opcional" maxlength="150">
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="form-field">
+                <mat-label>Lugar de traslado</mat-label>
+                <input matInput formControlName="lugarTraslado" placeholder="Hospital, IGSS... (Vació si no hubo)" maxlength="150">
+                <mat-icon matSuffix class="field-icon">local_hospital</mat-icon>
+              </mat-form-field>
+            </div>
+          </ng-container>
+
+          <mat-divider style="margin-bottom: 15px; opacity: 0.1;"></mat-divider>
+          
+          <!-- 🟢 UNIDAD Y PERSONAL (Siempre visibles si se permitió el cierre) -->
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Unidad destacada</mat-label>
+              <mat-select formControlName="unidadDestacada" multiple>
+                <mat-option *ngFor="let v of vehiculos" [value]="v.PLACA + ' - ' + v.MARCA">
+                  {{ v.PLACA }} ({{ v.MARCA }})
+                </mat-option>
+              </mat-select>
+              <mat-icon matSuffix class="field-icon">directions_car</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field">
+              <mat-label>Piloto de la unidad</mat-label>
+              <mat-select formControlName="piloto" multiple>
+                <mat-option *ngFor="let b of bomberos" [value]="b.persona?.NOMBRE + ' ' + b.persona?.APELLIDO">
+                  {{ b.persona?.NOMBRE }} {{ b.persona?.APELLIDO }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <div class="form-row">
+            <mat-form-field appearance="outline" class="form-field" style="flex: 2;">
+              <mat-label>Resto del personal destacado</mat-label>
+              <mat-select formControlName="personalDestacado" multiple>
+                <mat-option *ngFor="let b of bomberos" [value]="b.persona?.NOMBRE + ' ' + b.persona?.APELLIDO">
+                  {{ b.persona?.NOMBRE }} {{ b.persona?.APELLIDO }}
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+              <mat-label>Firma de Vo.Bo.</mat-label>
+              <mat-select formControlName="jefeTurno">
+                <mat-option *ngFor="let j of jefesDisponibles" [value]="j.persona?.NOMBRE + ' ' + j.persona?.APELLIDO + ' | ' + (j.CARGO || j.cargo || j.cargoFuncional || 'Jefe')">
+                  {{ j.persona?.NOMBRE }} {{ j.persona?.APELLIDO }} 
+                  <small style="opacity: 0.6; font-size: 0.85em;">- {{ j.CARGO || j.cargo || j.cargoFuncional }}</small>
+                </mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+
+          <mat-form-field appearance="outline" class="form-field full-width" style="margin-bottom: -15px;">
+            <mat-label>Observaciones finales</mat-label>
+            <textarea matInput formControlName="observacionesFinales" placeholder="Atenciones brindadas, logística o pormenores del servicio..." rows="3"></textarea>
+          </mat-form-field>
+        </div>
+      </ng-container>
+
+      <div *ngIf="!permitirCierre" style="background: rgba(255, 183, 77, 0.05); border: 1px dashed rgba(255, 183, 77, 0.3); border-radius: 8px; padding: 20px; margin-top: 15px; text-align: center;">
+        <mat-icon style="color: #ffb74d; font-size: 32px; width: 32px; height: 32px; margin-bottom: 10px;">lock_clock</mat-icon>
+        <p style="color: #ffb74d; font-weight: 500; margin: 0; font-size: 15px;">Cierre Operativo Bloqueado</p>
+        <p style="color: var(--text-dim); font-size: 13px; margin-top: 8px;">
+          Para documentar el informe final, la unidad despachada debe haber marcado su <strong>RETORNO (Entrada)</strong> a la estación en el tablero principal.
+        </p>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="sf-actions" align="end">
+    <button mat-button class="btn-cancel" (click)="onCancel()" [disabled]="isSaving"><mat-icon>close</mat-icon> Cancelar</button>
+    <button mat-raised-button color="primary" class="btn-save" type="submit" form="sf-form" [disabled]="isSaving">
+      <mat-icon *ngIf="!isSaving">save</mat-icon>
+      <mat-icon *ngIf="isSaving" class="spin-icon">sync</mat-icon>
+      <span>{{ isSaving ? 'Guardando…' : (esCancelado ? 'Guardar Cancelación' : (isEditMode ? (permitirCierre ? 'Guardar y Finalizar' : 'Actualizar Datos') : 'Registrar Llamada')) }}</span>
+    </button>
+  </mat-dialog-actions>
+
+</div>

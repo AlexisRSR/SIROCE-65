@@ -1,0 +1,69 @@
+// src/app/layout/public-header/public-header.component.scss
+// ══════════════════════════════════════════════════════════════
+//  PublicHeaderComponent — Header oscuro compartido
+//  Usado en LandingPageComponent y LoginComponent. Fondo oscuro
+//  FIJO (no reactivo al Theme Switcher): actúa como una barra de
+//  marca institucional constante, igual que el toolbar rojo del
+//  shell operativo. El contenido de la página debajo sí sigue
+//  el tema activo con normalidad.
+// ══════════════════════════════════════════════════════════════
+
+$red-primary: #c62828;
+
+:host {
+  display: block;
+  width: 100%;
+}
+
+.public-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 32px;
+  background-color: #141414;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .brand-icon { height: 40px; width: auto; object-fit: contain; }
+    .brand-text { font-weight: 700; letter-spacing: 3px; font-size: 15px; color: #ffffff; }
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+// Botones circulares — fondo transparente en reposo, tinte
+// neutro en hover, ícono que se tiñe de rojo corporativo.
+.header-icon-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  mat-icon, svg { width: 20px; height: 20px; }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+    color: $red-primary;
+  }
+}
+
+@media (max-width: 480px) {
+  .public-header { padding: 12px 16px; }
+  .brand .brand-text { font-size: 13px; letter-spacing: 2px; }
+}

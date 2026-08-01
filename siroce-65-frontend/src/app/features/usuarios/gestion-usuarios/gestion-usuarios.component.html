@@ -1,0 +1,156 @@
+<div class="ul-container page-enter">
+
+  <header class="page-toolbar">
+    <div class="page-title-area">
+      <mat-icon class="page-title-icon">admin_panel_settings</mat-icon>
+      <div>
+        <h2 class="page-title">Módulo de Usuarios</h2>
+        <p class="page-subtitle">Gestión de Accesos y Privilegios del Sistema</p>
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+        <mat-label>Buscar operador</mat-label>
+        <input matInput #searchInput (keyup)="applyFilter($event)" placeholder="Nombre, DPI o Rol..." autocomplete="off">
+        <mat-icon matPrefix class="search-prefix-icon">search</mat-icon>
+        <button *ngIf="filterValue" mat-icon-button matSuffix (click)="clearFilter(searchInput)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <button mat-raised-button color="primary" class="btn-nuevo" (click)="openForm()">
+        <mat-icon>person_add</mat-icon>
+        <span class="btn-nuevo-label">Nuevo Operador</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ESTADÍSTICAS -->
+  <div class="stats-row">
+    <div class="stat-chip stat-total">
+      <mat-icon>group</mat-icon>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.total }}</span>
+        <span class="stat-label">Total</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-activo">
+      <mat-icon>check_circle</mat-icon>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.activos }}</span>
+        <span class="stat-label">Activos</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-baja" style="border-left: 4px solid #ef5350;">
+      <mat-icon style="color: #ef5350;">block</mat-icon>
+      <div class="stat-data">
+        <span class="stat-value" style="color: #ef5350;">{{ stats.inactivos }}</span>
+        <span class="stat-label">Inactivos</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLA MATERIAL -->
+  <mat-card class="table-card">
+    <mat-progress-bar *ngIf="isLoading" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+    <div class="empty-state" *ngIf="!isLoading && dataSource.data.length === 0">
+      <mat-icon class="empty-state-icon">shield_person</mat-icon>
+      <p class="empty-state-title">Sin usuarios registrados</p>
+      <p class="empty-state-sub">Agrega personal para darles acceso al sistema.</p>
+      <button mat-stroked-button color="primary" (click)="openForm()">
+        <mat-icon>person_add</mat-icon> Agregar primer usuario
+      </button>
+    </div>
+
+    <div class="table-wrapper" [class.hidden]="!isLoading && dataSource.data.length === 0">
+      <table mat-table [dataSource]="dataSource" matSort matSortActive="nombre" matSortDirection="asc" class="usuarios-table">
+
+        <!-- # -->
+        <ng-container matColumnDef="num">
+          <th mat-header-cell *matHeaderCellDef class="col-num">#</th>
+          <td mat-cell *matCellDef="let i = index" class="col-num">
+            {{ paginator.pageIndex * paginator.pageSize + i + 1 }}
+          </td>
+        </ng-container>
+
+        <!-- Personal -->
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Personal</th>
+          <td mat-cell *matCellDef="let u">
+            <div class="usuario-cell">
+              <div class="avatar">{{ getInitials(u.nombreCompleto) }}</div>
+              <div class="usuario-info">
+                <p class="usuario-nombre">{{ u.nombreCompleto }}</p>
+                <p class="usuario-sub">DPI: {{ u.dpi || '0000000000000' }}</p>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Usuario Sistema -->
+        <ng-container matColumnDef="usuario">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Usuario</th>
+          <td mat-cell *matCellDef="let u" style="font-weight: 500; color: var(--text-primary);">
+            {{ u.usuario }}
+          </td>
+        </ng-container>
+
+        <!-- Rol -->
+        <ng-container matColumnDef="rol">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Rol del Sistema</th>
+          <td mat-cell *matCellDef="let u">
+            <span class="badge" [ngClass]="u.rol === 'ADMIN' ? 'badge-admin' : (u.rol === 'JEFE' ? 'badge-jefe' : 'badge-despacho')">
+              {{ u.rol }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- Estado -->
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+          <td mat-cell *matCellDef="let u">
+            <span class="estado-punto" [ngClass]="u.activo ? 'punto-verde' : 'punto-gris'"></span>
+            <span style="font-size: 13px;">{{ u.activo ? 'Activo' : 'Inactivo' }}</span>
+          </td>
+        </ng-container>
+
+        <!-- Acciones -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="col-acciones">Acciones</th>
+          <td mat-cell *matCellDef="let u" class="col-acciones">
+            
+            <button mat-icon-button class="btn-editar" matTooltip="Editar" (click)="onEdit(u)">
+              <mat-icon>edit</mat-icon>
+            </button>
+
+            <!-- Botón Desactivar / Activar -->
+            <button mat-icon-button 
+                    [ngClass]="u.activo ? 'btn-eliminar' : 'btn-activar'" 
+                    [matTooltip]="u.activo ? 'Desactivar' : 'Activar'"
+                    (click)="toggleEstado(u)"
+                    [disabled]="togglingId === u.id_usuario">
+              <mat-icon *ngIf="togglingId !== u.id_usuario">{{ u.activo ? 'block' : 'check_circle' }}</mat-icon>
+              <mat-icon *ngIf="togglingId === u.id_usuario" class="spin-icon">sync</mat-icon>
+            </button>
+            
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row" [class.row-inactive]="!row.activo"></tr>
+
+        <tr class="mat-row no-data-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="no-data-msg">
+              <mat-icon>search_off</mat-icon>
+              <span>Sin resultados para "<strong>{{ filterValue }}</strong>"</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+    <mat-paginator [pageSizeOptions]="[5, 10, 25]" [pageSize]="5" showFirstLastButtons></mat-paginator>
+  </mat-card>
+</div>

@@ -1,0 +1,137 @@
+<div class="sa-wrapper">
+
+  <div mat-dialog-title class="sa-header">
+    <div class="sa-header-icon">
+      <mat-icon>local_fire_department</mat-icon>
+    </div>
+    <div class="sa-header-text">
+      <h2 class="sa-title">Despacho para Emergencia #{{ servicio.id }}</h2>
+      <p class="sa-subtitle">
+        <mat-icon class="sub-icon">warning_amber</mat-icon>
+        {{ servicio.tipoServicioNombre }}
+        <span class="sub-sep" *ngIf="servicio.direccionServicio">·</span>
+        <mat-icon class="sub-icon" *ngIf="servicio.direccionServicio">location_on</mat-icon>
+        {{ servicio.direccionServicio }}
+      </p>
+    </div>
+    <button mat-icon-button class="sa-close-btn" (click)="onCancelar()" [disabled]="isDespachanando" aria-label="Cerrar panel de despacho">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="sa-summary" *ngIf="totalSeleccionados > 0" role="status" aria-live="polite">
+    <mat-icon>check_circle</mat-icon>
+    <span>
+      <strong>{{ selectedVehiculoCount }}</strong> {{ selectedVehiculoCount === 1 ? 'unidad' : 'unidades' }} &nbsp;·&nbsp;
+      <strong>{{ selectedBomberoCount }}</strong> {{ selectedBomberoCount === 1 ? 'bombero' : 'bomberos' }} seleccionados para despacho
+    </span>
+  </div>
+
+  <div class="sa-error" *ngIf="errorMsg" role="alert">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMsg }}</span>
+  </div>
+
+  <mat-dialog-content class="sa-content">
+    <mat-tab-group class="sa-tabs" animationDuration="180ms" color="primary">
+
+      <!-- PESTAÑA UNIDADES -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">fire_truck</mat-icon>
+          <span class="tab-text">Unidades Operativas</span>
+          <span class="tab-badge" *ngIf="selectedVehiculoCount > 0">{{ selectedVehiculoCount }}</span>
+        </ng-template>
+
+        <mat-progress-bar *ngIf="isLoadingVehiculos" mode="indeterminate" class="list-loader"></mat-progress-bar>
+
+        <div class="list-empty" *ngIf="!isLoadingVehiculos && vehiculos.length === 0">
+          <mat-icon style="color: #ef5350;">car_crash</mat-icon>
+          <p>No hay unidades operativas</p>
+          <span>Todos los vehículos están en taller, de baja o no hay registros.</span>
+        </div>
+
+        <mat-selection-list #vehiculosList class="sa-selection-list" (selectionChange)="onVehiculoSelChange()" *ngIf="!isLoadingVehiculos && vehiculos.length > 0">
+          <!-- 🔥 MAGIA APLICADA AQUÍ: disabled si está ocupado -->
+          <mat-list-option *ngFor="let v of vehiculos" 
+                           [value]="v.ID_VEHICULO" 
+                           [selected]="assignedVehiculoIds.includes(v.ID_VEHICULO)" 
+                           [disabled]="isVehiculoOcupado(v)"
+                           class="sa-list-option">
+            <div class="option-row">
+              <div class="v-icon-wrap" [ngClass]="getTipoVehiculoIconClass(v.tipoVehiculo?.TIPO)">
+                <mat-icon>{{ getVehiculoIcon(v.tipoVehiculo?.TIPO) }}</mat-icon>
+              </div>
+              <div class="option-body">
+                <p class="opt-title">{{ v.PLACA }}</p>
+                <p class="opt-sub">
+                  <span style="color: #ffb74d; font-weight: 500; font-size: 13px;">{{ getTipoUnidad(v) }}</span>
+                  <span style="opacity: 0.6;"> • {{ v.MARCA }} {{ v.MODELO }}</span>
+                </p>
+              </div>
+              <!-- Si está ocupado pinta etiqueta roja, sino la normal -->
+              <span class="opt-estado" [ngClass]="isVehiculoOcupado(v) ? 'estado-fuera' : getEstadoVehiculoClass(getEstadoVehiculo(v))">
+                {{ isVehiculoOcupado(v) ? 'Atendiendo Emergencia' : getEstadoVehiculo(v) }}
+              </span>
+            </div>
+          </mat-list-option>
+        </mat-selection-list>
+      </mat-tab>
+
+      <!-- PESTAÑA PERSONAL -->
+      <mat-tab>
+        <ng-template mat-tab-label>
+          <mat-icon class="tab-icon">people</mat-icon>
+          <span class="tab-text">Personal en Turno</span>
+          <span class="tab-badge" *ngIf="selectedBomberoCount > 0">{{ selectedBomberoCount }}</span>
+        </ng-template>
+
+        <mat-progress-bar *ngIf="isLoadingBomberos" mode="indeterminate" class="list-loader"></mat-progress-bar>
+
+        <div class="list-empty" *ngIf="!isLoadingBomberos && bomberos.length === 0">
+          <mat-icon style="color: #ef5350;">person_off</mat-icon>
+          <p>Sin personal en turno</p>
+          <span>Todos los bomberos están de baja, descanso o no hay registros.</span>
+        </div>
+
+        <mat-selection-list #bomberosList class="sa-selection-list" (selectionChange)="onBomberoSelChange()" *ngIf="!isLoadingBomberos && bomberos.length > 0">
+           <!-- 🔥 MAGIA APLICADA AQUÍ: disabled si está ocupado -->
+           <mat-list-option *ngFor="let b of bomberos" 
+                            [value]="b.ID_BOMBERO" 
+                            [selected]="assignedBomberoIds.includes(b.ID_BOMBERO)" 
+                            [disabled]="isBomberoOcupado(b)"
+                            class="sa-list-option">
+            <div class="option-row">
+              <div class="b-avatar">{{ getInitiales(b) }}</div>
+              <div class="option-body">
+                <p class="opt-title">{{ b.persona?.NOMBRE }} {{ b.persona?.APELLIDO }}</p>
+                <p class="opt-sub">
+                  <span style="color: #90caf9; font-weight: 500; font-size: 13px;">{{ getCargoBombero(b) }}</span>
+                  <span style="opacity: 0.6;"> • {{ b.grado?.GRADO || 'Sin grado' }}</span>
+                </p>
+              </div>
+              <!-- Si está ocupado pinta etiqueta roja, sino la normal -->
+              <span class="opt-estado" [ngClass]="isBomberoOcupado(b) ? 'estado-fuera' : getEstadoBomberoClass(getEstadoBombero(b))">
+                {{ isBomberoOcupado(b) ? 'Atendiendo Emergencia' : getEstadoBombero(b) }}
+              </span>
+            </div>
+          </mat-list-option>
+        </mat-selection-list>
+      </mat-tab>
+    </mat-tab-group>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="sa-actions" align="end">
+    <button mat-button class="btn-cancel" type="button" (click)="onCancelar()" [disabled]="isDespachanando">
+      <mat-icon>close</mat-icon> Cancelar
+    </button>
+    <button mat-raised-button color="primary" class="btn-despachar" type="button" (click)="onDespachar()" [disabled]="isDespachanando">
+      <mat-icon *ngIf="!isDespachanando">local_fire_department</mat-icon>
+      <mat-icon *ngIf="isDespachanando" class="spin-icon">sync</mat-icon>
+      <span *ngIf="!isDespachanando && totalSeleccionados === 0">Despachar</span>
+      <span *ngIf="!isDespachanando && totalSeleccionados > 0">Despachar ({{ totalSeleccionados }})</span>
+      <span *ngIf="isDespachanando">Despachando…</span>
+    </button>
+  </mat-dialog-actions>
+
+</div>

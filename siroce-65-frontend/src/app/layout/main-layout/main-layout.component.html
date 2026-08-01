@@ -1,0 +1,302 @@
+<!-- src/app/layout/main-layout/main-layout.component.html -->
+<!-- ═══════════════════════════════════════════════════════════
+     SASE29 — Layout Principal
+     Estructura:
+       <mat-sidenav-container>
+         <mat-sidenav>        ← Menú lateral oscuro
+         <mat-sidenav-content>
+           <mat-toolbar>     ← Barra superior roja
+           <router-outlet>   ← Contenido de cada módulo
+           <footer>          ← Pie de página
+     ═══════════════════════════════════════════════════════════ -->
+
+  <mat-sidenav-container class="shell-container" fullscreen>
+  <!-- ════════════════════════════════════════════════════════
+       SIDENAV — Menú lateral izquierdo
+       Modo: "side" en desktop (visible fijo),
+             "over" en mobile (superpuesto y cierra al navegar).
+       ════════════════════════════════════════════════════════ -->
+  
+
+  <mat-sidenav
+    #sidenav
+    class="app-sidenav"
+    [mode]="isMobile ? 'over' : 'side'"
+    [opened]="!isMobile"
+    fixedInViewport="true">
+
+    <div class="sidenav-header">
+      <img src="escudo.png" alt="Escudo 65 Cía" class="sidenav-brand-icon">
+      <span class="sidenav-brand-text">MENU</span>
+    </div>
+
+    <mat-divider class="sidenav-divider"></mat-divider>
+
+    <nav class="nav-container" aria-label="Menú principal">
+
+      <ng-container *ngFor="let group of filteredMenuGroups">
+        <ng-container *ngIf="!group.roles || group.roles.includes(userRole)">
+
+          <button
+            class="nav-group-header"
+            [class.is-expanded]="group.expanded"
+            [attr.aria-expanded]="group.children ? group.expanded : null"
+            (click)="toggleGroup(group)"
+            matRipple
+            [matRippleColor]="'rgba(198,40,40,0.12)'">
+
+            <mat-icon class="nav-group-icon">{{ group.icon }}</mat-icon>
+            <span class="nav-group-label">{{ group.label }}</span>
+            <mat-icon class="nav-chevron" *ngIf="group.children">
+              {{ group.expanded ? 'expand_less' : 'expand_more' }}
+            </mat-icon>
+          </button>
+
+          <div
+            class="nav-children"
+            *ngIf="group.children && group.expanded"
+            role="group">
+
+            <a
+              *ngFor="let child of group.children"
+              class="nav-child-item"
+              [routerLink]="child.route"
+              routerLinkActive="nav-child-active"
+              [routerLinkActiveOptions]="{ exact: false }"
+              matRipple
+              [matRippleColor]="'rgba(198,40,40,0.15)'"
+              [attr.aria-label]="child.label">
+
+              <mat-icon class="nav-child-icon">{{ child.icon }}</mat-icon>
+              <span class="nav-child-label">{{ child.label }}</span>
+            </a>
+          </div>
+
+        </ng-container>
+      </ng-container>
+
+    </nav>
+
+    <div class="sidenav-spacer"></div>
+
+    <mat-divider class="sidenav-divider"></mat-divider>
+
+    <button
+      class="nav-logout-btn"
+      (click)="logout()"
+      matRipple
+      [matRippleColor]="'rgba(198,40,40,0.18)'"
+      aria-label="Cerrar sesión">
+      <mat-icon>exit_to_app</mat-icon>
+      <span>Salir</span>
+    </button>
+
+  </mat-sidenav>
+  <mat-sidenav-content class="main-content">
+
+    <mat-toolbar class="app-toolbar" color="primary" role="banner">
+
+      <button
+        mat-icon-button
+        class="toolbar-menu-btn"
+        (click)="sidenav.toggle()"
+        aria-label="Abrir o cerrar menú lateral">
+        <mat-icon>menu</mat-icon>
+      </button>
+
+      <a class="app-brand" routerLink="/home" aria-label="Inicio SASE29">
+        <img src="escudo.png" alt="Escudo 65 Cía" class="brand-fire-icon">
+        <span class="brand-text">SIROCE-65</span>
+      </a>
+
+      <span class="toolbar-spacer"></span>
+
+      <button mat-button class="toolbar-action-btn" routerLink="/home"
+              matTooltip="Inicio" matTooltipPosition="below">
+        <mat-icon>home</mat-icon>
+        <span class="toolbar-btn-text">Inicio</span>
+      </button>
+
+      <!-- ── Theme Switcher: sol (ir a claro) / luna (ir a oscuro) ── -->
+      <button
+        mat-icon-button
+        class="toolbar-theme-btn"
+        (click)="toggleTheme()"
+        [matTooltip]="theme.isLight() ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'"
+        matTooltipPosition="below"
+        [attr.aria-label]="theme.isLight() ? 'Activar modo oscuro' : 'Activar modo claro'">
+        <mat-icon>{{ theme.isLight() ? 'dark_mode' : 'light_mode' }}</mat-icon>
+      </button>
+
+      <button
+        mat-button
+        class="toolbar-action-btn toolbar-user-btn"
+        [matMenuTriggerFor]="userDropdown"
+        aria-label="Menú de usuario">
+        <mat-icon>account_circle</mat-icon>
+        <span class="toolbar-btn-text">{{ userRole || username }}</span>
+        <mat-icon class="chevron-down">arrow_drop_down</mat-icon>
+      </button>
+
+      <mat-menu #userDropdown="matMenu" class="user-dropdown-panel">
+        <div class="user-info-panel" mat-menu-item disabled>
+          <mat-icon>person</mat-icon>
+          <div class="user-info-text">
+            <span class="user-info-name">{{ username }}</span>
+            <span class="user-info-role">{{ userRole }}</span>
+          </div>
+        </div>
+        <mat-divider></mat-divider>
+        
+        <button mat-menu-item (click)="abrirModalCambioPassword()">
+          <mat-icon>vpn_key</mat-icon>
+          <span>Cambiar contraseña</span>
+        </button>
+
+        <button mat-menu-item (click)="logout()">
+          <mat-icon>exit_to_app</mat-icon>
+          <span>Cerrar sesión</span>
+        </button>
+      </mat-menu>
+
+      <button
+        mat-stroked-button
+        class="toolbar-logout-btn"
+        (click)="logout()"
+        aria-label="Cerrar sesión">
+        Logout
+      </button>
+
+    </mat-toolbar>
+    <main class="router-wrapper" role="main">
+      <router-outlet></router-outlet>
+    </main>
+    <footer class="app-footer" role="contentinfo">
+      <span class="footer-line">SISTEMA DE ADMINISTRACIÓN DE SERVICIOS Y EMERGENCIAS</span>
+      <span class="footer-separator" aria-hidden="true">|</span>
+      <span class="footer-line">COMPAÑÍA DE BOMBEROS VOLUNTARIOS</span>
+    </footer>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+
+<ng-template #changePasswordDialog>
+  <div style="background-color: var(--bg-dialog-surface); color: var(--text-primary); padding: 20px;">
+
+    <!-- 🔥 CAMBIO: Título Dinámico -->
+    <h2 mat-dialog-title style="color: var(--text-bright); font-weight: 700; font-size: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center;">
+      <mat-icon style="margin-right: 8px; color: #c62828;">vpn_key</mat-icon>
+      {{ esForzadoModal ? 'Actualizar Contraseña' : 'Cambiar Contraseña' }}
+    </h2>
+    
+    <mat-dialog-content style="min-width: 350px; overflow-x: hidden;">
+      <p style="color: var(--text-medium); font-size: 13px; margin-bottom: 16px;">
+        Ingresa tu clave actual y define una nueva que cumpla con los estándares de seguridad de la estación.
+      </p>
+
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+
+        <!-- 🔥 AUTO-CORRECCIÓN: Lo ocultamos SOLO si es forzado Y la contraseña no se perdió de la memoria -->
+        <mat-form-field appearance="outline" class="dark-input" [style.display]="(esForzadoModal && pwdData.actual) ? 'none' : ''">
+          <mat-label>Contraseña Actual</mat-label>
+          <input matInput [type]="hidePwd1 ? 'password' : 'text'" #pwdActual maxlength="15"
+                 [value]="pwdData.actual"
+                 (input)="pwdData.actual = pwdActual.value; actualizarFormulario(pwdData.actual, pwdNueva.value, pwdConfirmar.value)">
+          <button mat-icon-button matSuffix (click)="hidePwd1 = !hidePwd1" tabindex="-1">
+            <mat-icon style="color: var(--text-dim);">{{hidePwd1 ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="dark-input">
+          <mat-label>Nueva Contraseña</mat-label>
+          <input matInput [type]="hidePwd2 ? 'password' : 'text'" #pwdNueva maxlength="15"
+                 (input)="actualizarFormulario(pwdData.actual, pwdNueva.value, pwdConfirmar.value)">
+          <button mat-icon-button matSuffix (click)="hidePwd2 = !hidePwd2" tabindex="-1">
+            <mat-icon style="color: var(--text-dim);">{{hidePwd2 ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          
+          <mat-hint *ngIf="mismaPassword" style="color: var(--accent-danger); font-size: 11px;">
+            La nueva clave no puede ser igual a la actual.
+          </mat-hint>
+        </mat-form-field>
+
+        <div style="background-color: var(--bg-inset); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 12px;">
+          <span style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; display: block;">Requisitos obligatorios:</span>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px;">
+            
+            <!-- 🔥 CAMBIO: Ahora dice 12+ caracteres -->
+            <div [style.color]="pwdRequisitos.longitud ? 'var(--accent-success)' : 'var(--text-faint)'"
+              style="display: flex; align-items: center; gap: 4px;">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px;">{{pwdRequisitos.longitud ? 'check_circle' :
+                'radio_button_unchecked'}}</mat-icon>
+              12 a 15 caracteres
+            </div>
+            
+            <div [style.color]="pwdRequisitos.mayuscula ? 'var(--accent-success)' : 'var(--text-faint)'" style="display: flex; align-items: center; gap: 4px;">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px;">{{pwdRequisitos.mayuscula ? 'check_circle' : 'radio_button_unchecked'}}</mat-icon> Una mayúscula
+            </div>
+            <div [style.color]="pwdRequisitos.minuscula ? 'var(--accent-success)' : 'var(--text-faint)'" style="display: flex; align-items: center; gap: 4px;">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px;">{{pwdRequisitos.minuscula ? 'check_circle' : 'radio_button_unchecked'}}</mat-icon> Una minúscula
+            </div>
+            <div [style.color]="pwdRequisitos.numero ? 'var(--accent-success)' : 'var(--text-faint)'" style="display: flex; align-items: center; gap: 4px;">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px;">{{pwdRequisitos.numero ? 'check_circle' : 'radio_button_unchecked'}}</mat-icon> Un número
+            </div>
+            <div [style.color]="pwdRequisitos.especial ? 'var(--accent-success)' : 'var(--text-faint)'" style="display: flex; align-items: center; gap: 4px; grid-column: span 2;">
+              <mat-icon style="font-size: 16px; width: 16px; height: 16px;">{{pwdRequisitos.especial ? 'check_circle' : 'radio_button_unchecked'}}</mat-icon> Signo especial (@, #, $)
+            </div>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="dark-input">
+          <mat-label>Confirmar Nueva Contraseña</mat-label>
+          <input matInput [type]="hidePwd3 ? 'password' : 'text'" #pwdConfirmar maxlength="15"
+                 (input)="actualizarFormulario(pwdData.actual, pwdNueva.value, pwdConfirmar.value)">
+          <button mat-icon-button matSuffix (click)="hidePwd3 = !hidePwd3" tabindex="-1">
+            <mat-icon style="color: var(--text-dim);">{{hidePwd3 ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          
+          <mat-hint *ngIf="pwdNueva.value && pwdConfirmar.value && pwdNueva.value !== pwdConfirmar.value" style="color: var(--accent-danger);">
+            Las contraseñas no coinciden
+          </mat-hint>
+        </mat-form-field>
+
+        <div *ngIf="errorBackend" style="background-color: rgba(211, 47, 47, 0.15); border: 1px solid rgba(211, 47, 47, 0.5); border-radius: 6px; padding: 10px 12px; margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+          <mat-icon style="color: var(--accent-danger); font-size: 18px; width: 18px; height: 18px;">error_outline</mat-icon>
+          <span style="color: var(--accent-danger-soft); font-size: 13px; font-weight: 500;">{{ errorBackend }}</span>
+        </div>
+
+      </div>
+    </mat-dialog-content>
+
+    <!-- 🔥 ACTUALIZACIÓN: Layout flex para separar el botón de cerrar sesión a la izquierda y los botones principales a la derecha -->
+    <mat-dialog-actions style="padding-top: 8px; border-top: 1px solid var(--border-color); margin-top: 10px; display: flex; justify-content: space-between; align-items: center;">
+
+      <!-- Lado Izquierdo: El salvavidas de Cerrar Sesión con estilo sutil -->
+      <div>
+        <button mat-button *ngIf="esForzadoModal" (click)="logout()" style="color: var(--text-dim); font-size: 13px;" [disabled]="isChangingPwd">
+          Cerrar Sesión
+        </button>
+      </div>
+
+      <!-- Lado Derecho: Cancelar y Guardar Cambios -->
+      <div style="display: flex; gap: 8px;">
+        <button mat-button mat-dialog-close *ngIf="!esForzadoModal" style="color: var(--text-medium);" [disabled]="isChangingPwd">
+          Cancelar
+        </button>
+
+        <button mat-flat-button (click)="guardarNuevaPassword()"
+                [disabled]="!formValido || isChangingPwd"
+                [style.backgroundColor]="(!formValido || isChangingPwd) ? 'var(--bg-hover)' : '#c62828'"
+                [style.color]="(!formValido || isChangingPwd) ? 'var(--text-faint)' : '#ffffff'"
+                style="min-width: 170px; height: 36px; padding: 0 16px;">
+          <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+            <mat-icon *ngIf="isChangingPwd" style="animation: spin 1s linear infinite; margin: 0; font-size: 20px; width: 20px; height: 20px;">sync</mat-icon>
+            <span style="font-weight: 500;">{{ isChangingPwd ? 'Verificando...' : 'Guardar Cambios' }}</span>
+          </div>
+        </button>
+      </div>
+
+    </mat-dialog-actions>
+    
+  </div>
+</ng-template>

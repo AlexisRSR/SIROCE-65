@@ -1,0 +1,172 @@
+<div class="tel-container page-enter">
+
+  <header class="page-toolbar">
+    <div class="page-title-area">
+      <mat-icon class="page-title-icon">warning_amber</mat-icon>
+      <div>
+        <h2 class="page-title">Tipos de Emergencia y Servicios</h2>
+        <p class="page-subtitle">Catálogo unificado para el despacho operativo</p>
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+        <mat-label>Buscar incidente</mat-label>
+        <input matInput #searchInput (keyup)="applyFilter($event)" placeholder="Nombre, categoría, prioridad..." autocomplete="off">
+        <mat-icon matPrefix class="search-icon">search</mat-icon>
+        <button *ngIf="filterValue" mat-icon-button matSuffix aria-label="Limpiar búsqueda" (click)="clearFilter(searchInput)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <!-- 🔥 CANDADO: Solo ADMIN crea nuevos tipos de emergencias -->
+      <button *ngIf="userRole === 'ADMIN'" mat-raised-button color="primary" class="btn-nuevo" (click)="openForm()" aria-label="Registrar nuevo incidente">
+        <mat-icon>add_circle_outline</mat-icon>
+        <span class="btn-label">Nuevo Incidente</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-chip stat-total">
+      <div class="stat-icon-wrap"><mat-icon>category</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.total }}</span>
+        <span class="stat-label">Total tipos</span>
+      </div>
+    </div>
+
+    <div class="stat-chip stat-alta">
+      <div class="stat-icon-wrap"><mat-icon>priority_high</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.alta }}</span>
+        <span class="stat-label">Alta prioridad</span>
+      </div>
+    </div>
+
+    <div class="stat-chip stat-media">
+      <div class="stat-icon-wrap"><mat-icon>drag_handle</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.media }}</span>
+        <span class="stat-label">Media prioridad</span>
+      </div>
+    </div>
+
+    <div class="stat-chip stat-baja">
+      <div class="stat-icon-wrap"><mat-icon>keyboard_arrow_down</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.baja }}</span>
+        <span class="stat-label">Baja prioridad</span>
+      </div>
+    </div>
+  </div>
+
+  <mat-card class="table-card">
+    <mat-progress-bar *ngIf="isLoading" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+    <div class="empty-state" *ngIf="!isLoading && dataSource.data.length === 0">
+      <mat-icon class="empty-icon">warning_amber</mat-icon>
+      <p class="empty-title">Sin incidentes registrados</p>
+      <p class="empty-sub">Agrega el primer incidente para comenzar el catálogo.</p>
+      
+      <!-- 🔥 CANDADO: Solo ADMIN ve este botón cuando está vacío -->
+      <button *ngIf="userRole === 'ADMIN'" mat-stroked-button color="primary" (click)="openForm()">
+        <mat-icon>add_circle_outline</mat-icon> Agregar incidente
+      </button>
+    </div>
+
+    <div class="table-wrapper" [class.hidden]="!isLoading && dataSource.data.length === 0">
+      <table mat-table [dataSource]="dataSource" matSort matSortActive="nombre" matSortDirection="asc" class="te-table" aria-label="Tabla de incidentes">
+
+        <ng-container matColumnDef="num">
+          <th mat-header-cell *matHeaderCellDef class="col-num">#</th>
+          <td mat-cell *matCellDef="let tipo; let i = index" class="col-num">
+            {{ getRowNumber(i) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Incidente</th>
+          <td mat-cell *matCellDef="let tipo">
+            <span style="font-weight: 500; font-size: 15px; color: var(--text-bright);">{{ tipo.nombre }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="categoria">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Categoría</th>
+          <td mat-cell *matCellDef="let tipo">
+            <span class="badge" [ngClass]="tipo.categoria === 'Emergencia' ? 'badge-alta' : 'badge-baja'">
+              <mat-icon class="badge-icon">{{ tipo.categoria === 'Emergencia' ? 'warning' : 'engineering' }}</mat-icon>
+              {{ tipo.categoria }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="descripcion">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Descripción</th>
+          <td mat-cell *matCellDef="let tipo">
+            <span class="descripcion-text" [matTooltip]="tipo.descripcion || ''" matTooltipPosition="above" [matTooltipDisabled]="!tipo.descripcion || tipo.descripcion.length <= 60" style="color: var(--text-medium);">
+              {{ tipo.descripcion || '—' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="prioridad">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-prioridad">Prioridad</th>
+          <td mat-cell *matCellDef="let tipo" class="col-prioridad">
+            <span class="badge" [ngClass]="getPrioridadClass(tipo.prioridad)" *ngIf="tipo.prioridad; else sinPrioridad">
+              <mat-icon class="badge-icon">{{ getPrioridadIcon(tipo.prioridad) }}</mat-icon>
+              {{ tipo.prioridad }}
+            </span>
+            <ng-template #sinPrioridad><span class="badge badge-default">—</span></ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="vehiculo">
+          <th mat-header-cell *matHeaderCellDef>Unidad Ideal</th>
+          <td mat-cell *matCellDef="let tipo">
+             <span *ngIf="tipo.id_tipo_v; else sinUnidad" 
+                   style="background: var(--bg-badge-neutral); border: 1px solid var(--border-strong); color: var(--text-primary); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
+               <mat-icon style="font-size: 15px; width: 15px; height: 15px; color: #9e9e9e;">
+                 {{ getIconoVehiculo(tipo.id_tipo_v) }}
+               </mat-icon>
+               {{ getNombreVehiculo(tipo.id_tipo_v) }}
+             </span>
+             <ng-template #sinUnidad>
+               <span style="color: var(--text-faint);">—</span>
+             </ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="col-acciones">Acciones</th>
+          <td mat-cell *matCellDef="let tipo" class="col-acciones">
+            <button mat-icon-button class="btn-editar" matTooltip="Editar" matTooltipPosition="above" (click)="onEdit(tipo)" aria-label="Editar tipo">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button class="btn-eliminar" matTooltip="Eliminar" matTooltipPosition="above" (click)="onDelete(tipo)" [disabled]="deletingId === tipo.id_tipo_emergencia" aria-label="Eliminar tipo">
+              <mat-icon>{{ deletingId === tipo.id_tipo_emergencia ? 'hourglass_empty' : 'delete_outline' }}</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+
+        <tr class="mat-row no-data-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="no-data-msg">
+              <mat-icon>search_off</mat-icon>
+              <span>Sin resultados para "<strong>{{ filterValue }}</strong>"</span>
+            </div>
+          </td>
+        </tr>
+
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="5" showFirstLastButtons aria-label="Páginas de registros"></mat-paginator>
+
+  </mat-card>
+
+</div>

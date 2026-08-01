@@ -1,0 +1,171 @@
+// src/app/features/vehiculos/vehiculos-form/vehiculos-form.component.scss
+// ══════════════════════════════════════════════════════════════
+//  VehiculosFormComponent — Estilos del modal (modo oscuro)
+// ══════════════════════════════════════════════════════════════
+
+@use "sass:color";
+
+// Rojo literal (para color.adjust); el resto sigue al tema activo
+$red-dark   : #b71c1c;
+$dialog-bg  : var(--bg-dialog);
+$input-bg   : var(--bg-input);
+$border     : var(--border-color);
+$text-on    : var(--text-primary);
+$text-dim   : var(--text-dim);
+$error-bg   : rgba(183, 28, 28, 0.10);
+$error-brd  : rgba(239, 83, 80, 0.35);
+
+// ── Wrapper del diálogo ───────────────────────────────────────
+.vf-dialog-wrapper {
+  background-color: $dialog-bg;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+// ── Cabecera ──────────────────────────────────────────────────
+.vf-header {
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, color.adjust($red-dark, $lightness: -5%) 0%, $red-dark 100%);;
+  padding: 18px 20px;
+  margin: 0 !important;
+
+  .vf-header-icon {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    mat-icon { color: #fff; font-size: 22px; width: 22px; height: 22px; }
+  }
+
+  .vf-header-text { flex: 1; min-width: 0; }
+  .vf-title       { margin: 0; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
+  .vf-subtitle    { margin: 3px 0 0; font-size: 11px; color: rgba(255,255,255,0.70); }
+
+  .vf-close {
+    color: rgba(255,255,255,0.75) !important;
+    flex-shrink: 0;
+    &:hover { background: rgba(255,255,255,0.12) !important; }
+  }
+}
+
+// ── Contenido ─────────────────────────────────────────────────
+.vf-content {
+  padding: 20px 24px !important;
+  max-height: 60vh;
+  overflow-y: auto;
+  background-color: $dialog-bg;
+
+  &::-webkit-scrollbar       { width: 5px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: rgba(183,28,28,0.40); border-radius: 3px; }
+}
+
+.vf-progress { margin-bottom: 16px; border-radius: 2px; }
+
+.vf-error {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: $error-bg; border: 1px solid $error-brd;
+  border-radius: 6px; padding: 12px 14px; margin-bottom: 14px;
+  animation: shake 0.30s ease;
+
+  mat-icon { color: var(--accent-danger-soft); font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+  span     { color: var(--accent-danger-soft); font-size: 13px; line-height: 1.5; }
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-5px); }
+  75%     { transform: translateX(5px); }
+}
+
+// ── Formulario ────────────────────────────────────────────────
+.vf-form { display: flex; flex-direction: column; }
+
+.section-label {
+  display: flex; align-items: center; gap: 6px;
+  margin: 8px 0 14px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  color: $text-dim;
+
+  .section-icon {
+    font-size: 16px; width: 16px; height: 16px;
+    color: rgba(183,28,28,0.75);
+  }
+}
+
+.section-divider { border-color: $border !important; margin: 12px 0 16px !important; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+.form-field {
+  width: 100%;
+
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper { background-color: $input-bg !important; }
+
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing { border-color: $border !important; }
+
+    .mdc-text-field--focused {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: $red-dark !important;
+        border-width: 2px !important;
+      }
+    }
+
+    .mat-mdc-floating-label.mdc-floating-label--float-above { color: $red-dark !important; }
+    .mat-mdc-input-element, .mat-mdc-select-value-text       { color: $text-on; }
+    .mat-mdc-select-arrow                                     { color: $text-dim; }
+  }
+}
+
+.field-icon { color: $text-dim; font-size: 18px; width: 18px; height: 18px; }
+.km-suffix  { color: $text-dim; font-size: 13px; margin-left: 4px; }
+
+// ── Acciones ──────────────────────────────────────────────────
+.vf-actions {
+  padding: 14px 24px !important;
+  background-color: var(--bg-actions-bar);
+  border-top: 1px solid $border;
+  display: flex;
+  gap: 10px;
+
+  .btn-cancel {
+    color: $text-dim !important; gap: 4px;
+    &:hover { color: $text-on !important; }
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+
+  .btn-save {
+    padding: 0 24px; height: 42px;
+    font-weight: 700; gap: 8px;
+    transition: box-shadow 0.20s ease !important;
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    &:not([disabled]):hover { box-shadow: 0 4px 14px rgba(183,28,28,0.45) !important; }
+    &[disabled] { opacity: 0.45 !important; }
+  }
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin-icon { animation: spin 0.85s linear infinite; }
+
+// ── Responsive ────────────────────────────────────────────────
+@media (max-width: 480px) {
+  .form-row    { grid-template-columns: 1fr; }
+  .vf-content  { padding: 16px !important; }
+  .vf-actions  { padding: 12px 16px !important; }
+}

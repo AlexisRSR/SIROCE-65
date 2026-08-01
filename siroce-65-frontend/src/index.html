@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SIROCE-65 | 65 Cía. San Rafael</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    
+    <!-- Aquí aplicamos el Cache-Busting con ?v=2 para que muestre el escudo a la fuerza -->
+    <link rel="icon" type="image/x-icon" href="favicon.ico?v=2" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+    <!-- SIROCE-65: aplica el tema guardado ANTES de que Angular arranque
+         para evitar el parpadeo (FOUC) al recargar la página -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('siroce65_theme') === 'light' ? 'light' : 'dark';
+          document.documentElement.setAttribute('data-theme', theme);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
+</html>

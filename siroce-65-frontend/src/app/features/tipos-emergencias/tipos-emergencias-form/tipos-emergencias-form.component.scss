@@ -1,0 +1,231 @@
+// src/app/features/tipos-emergencias/tipos-emergencias-form/tipos-emergencias-form.component.scss
+// ══════════════════════════════════════════════════════════════
+//  TiposEmergenciasFormComponent — Estilos del modal
+// ──────────────────────────────────────────────────────────────
+//  ✅ @use "sass:color" en la primera línea
+//  ✅ color.adjust() en lugar de darken()
+// ══════════════════════════════════════════════════════════════
+
+// ① PRIMERA línea: importar el módulo sass:color
+@use "sass:color";
+
+// ── Variables ─────────────────────────────────────────────────
+// Rojo literal (para color.adjust); el resto sigue al tema activo
+$red-dark    : #b71c1c;
+$dialog-bg   : var(--bg-dialog);
+$input-bg    : var(--bg-input);
+$border      : var(--border-color);
+$text-on     : var(--text-primary);
+$text-dim    : var(--text-dim);
+$error-bg    : rgba(183, 28, 28, 0.10);
+$error-brd   : rgba(239, 83, 80, 0.35);
+
+// ── Variantes de cabecera según prioridad ─────────────────────
+// ✅ Usando color.adjust() en lugar de darken()
+$header-alta : #b71c1c;  // Rojo base
+$header-media: #e65100;  // Naranja
+$header-baja : #2e7d32;  // Verde
+
+// ════════════════════════════════════════════════════════════
+//  WRAPPER
+// ════════════════════════════════════════════════════════════
+.tef-wrapper {
+  background-color: $dialog-bg;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+// ════════════════════════════════════════════════════════════
+//  CABECERA — COLOR VARÍA SEGÚN LA PRIORIDAD SELECCIONADA
+// ════════════════════════════════════════════════════════════
+.tef-header {
+  display: flex !important;
+  align-items: center;
+  gap: 14px;
+  // ✅ color.adjust() en lugar de darken() para el gradiente
+  background: linear-gradient(
+    135deg,
+    color.adjust($red-dark, $lightness: -5%) 0%,
+    $red-dark 100%
+  );
+  padding: 18px 20px;
+  margin: 0 !important;
+  transition: background 0.30s ease;
+
+  // Variante Alta — rojo
+  &.header-alta {
+    background: linear-gradient(
+      135deg,
+      color.adjust($header-alta, $lightness: -5%) 0%,
+      $header-alta 100%
+    );
+  }
+
+  // Variante Media — naranja
+  &.header-media {
+    background: linear-gradient(
+      135deg,
+      color.adjust($header-media, $lightness: -5%) 0%,
+      $header-media 100%
+    );
+  }
+
+  // Variante Baja — verde
+  &.header-baja {
+    background: linear-gradient(
+      135deg,
+      color.adjust($header-baja, $lightness: -5%) 0%,
+      $header-baja 100%
+    );
+  }
+
+  .tef-header-icon {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    mat-icon { color: #fff; font-size: 22px; width: 22px; height: 22px; }
+  }
+
+  .tef-header-text { flex: 1; min-width: 0; }
+  .tef-title       { margin: 0; font-size: 18px; font-weight: 700; color: #fff; line-height: 1.2; }
+  .tef-subtitle    { margin: 3px 0 0; font-size: 11px; color: rgba(255,255,255,0.70); }
+
+  .tef-close {
+    color: rgba(255,255,255,0.75) !important;
+    flex-shrink: 0;
+    &:hover { background: rgba(255,255,255,0.12) !important; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  CONTENIDO
+// ════════════════════════════════════════════════════════════
+.tef-content {
+  padding: 20px 24px !important;
+  max-height: 65vh;
+  overflow-y: auto;
+  background-color: $dialog-bg;
+
+  &::-webkit-scrollbar       { width: 5px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(183, 28, 28, 0.40);
+    border-radius: 3px;
+  }
+}
+
+.tef-progress { margin-bottom: 16px; border-radius: 2px; }
+
+.tef-error {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: $error-bg; border: 1px solid $error-brd;
+  border-radius: 6px; padding: 12px 14px; margin-bottom: 14px;
+  animation: shake 0.30s ease;
+
+  mat-icon { color: var(--accent-danger-soft); font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+  span     { color: var(--accent-danger-soft); font-size: 13px; line-height: 1.5; }
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-5px); }
+  75%     { transform: translateX(5px); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  FORMULARIO
+// ════════════════════════════════════════════════════════════
+.tef-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field {
+  width: 100%;
+  &.full-width { grid-column: 1 / -1; }
+
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper { background-color: $input-bg !important; }
+
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing { border-color: $border !important; }
+
+    .mdc-text-field--focused {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        // ✅ color.adjust() para el color de foco dinámico
+        border-color: $red-dark !important;
+        border-width: 2px !important;
+      }
+    }
+
+    .mat-mdc-floating-label.mdc-floating-label--float-above { color: $red-dark !important; }
+    .mat-mdc-input-element, .mat-mdc-select-value-text { color: $text-on; }
+    .mat-mdc-select-arrow { color: $text-dim; }
+    textarea { color: $text-on; resize: vertical; }
+  }
+}
+
+.form-divider { border-color: $border !important; margin: 8px 0 14px !important; }
+.field-icon   { color: $text-dim; font-size: 18px; width: 18px; height: 18px; }
+
+// ── Opciones del select de prioridad ─────────────────────────
+.priority-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+
+  mat-icon {
+    font-size: 18px; width: 18px; height: 18px;
+    // Colores por nivel de prioridad (tematizados)
+    &.icon-alta  { color: var(--accent-danger); }
+    &.icon-media { color: var(--accent-warn); }
+    &.icon-baja  { color: var(--accent-success); }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ACCIONES
+// ════════════════════════════════════════════════════════════
+.tef-actions {
+  padding: 14px 24px !important;
+  background-color: var(--bg-actions-bar);
+  border-top: 1px solid $border;
+  display: flex;
+  gap: 10px;
+
+  .btn-cancel {
+    color: $text-dim !important; gap: 4px;
+    &:hover { color: $text-on !important; }
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+
+  .btn-save {
+    padding: 0 24px; height: 42px; font-weight: 700; gap: 8px;
+    transition: box-shadow 0.20s ease !important;
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+    // ✅ color.adjust() para la sombra de hover
+    &:not([disabled]):hover {
+      box-shadow: 0 4px 14px rgba(183, 28, 28, 0.45) !important;
+    }
+    &[disabled] { opacity: 0.45 !important; }
+  }
+}
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin-icon { animation: spin 0.85s linear infinite; }
+
+// ════════════════════════════════════════════════════════════
+//  RESPONSIVE
+// ════════════════════════════════════════════════════════════
+@media (max-width: 480px) {
+  .tef-content { padding: 16px !important; }
+  .tef-actions { padding: 12px 16px !important; }
+}

@@ -1,0 +1,257 @@
+// src/app/features/bomberos/bomberos-form/bomberos-form.component.scss
+// ══════════════════════════════════════════════════════════════
+//  BomberosFormComponent — Estilos del modal (modo oscuro)
+// ══════════════════════════════════════════════════════════════
+
+// ── Variables ─────────────────────────────────────────────────
+// Rojos de marca constantes; superficies/textos siguen al tema
+$red-primary  : #c62828;
+$dialog-bg    : var(--bg-dialog);
+$header-bg    : #c62828;
+$input-bg     : var(--bg-input);
+$border-color : var(--border-color);
+$text-primary : var(--text-primary);
+$text-dim     : var(--text-dim);
+$error-bg     : rgba(198, 40, 40, 0.10);
+$error-border : rgba(239, 83, 80, 0.35);
+
+// ════════════════════════════════════════════════════════════
+//  WRAPPER GLOBAL DEL DIÁLOGO
+// ════════════════════════════════════════════════════════════
+.bf-dialog-wrapper {
+  background-color: $dialog-bg;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+// ════════════════════════════════════════════════════════════
+//  CABECERA (franja roja)
+// ════════════════════════════════════════════════════════════
+.bf-header {
+  display: flex !important;       // Sobreescribir mat-dialog-title default
+  align-items: center;
+  gap: 14px;
+  background: linear-gradient(135deg, #b71c1c 0%, $red-primary 100%);
+  padding: 18px 20px;
+  margin: 0 !important;           // Remover márgenes de mat-dialog-title
+
+  .bf-header-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+
+    mat-icon {
+      color: #fff;
+      font-size: 22px;
+      width: 22px;
+      height: 22px;
+    }
+  }
+
+  .bf-header-text {
+    flex: 1;
+    min-width: 0;   // Evita overflow del texto
+
+    .bf-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .bf-subtitle {
+      margin: 3px 0 0;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.70);
+    }
+  }
+
+  .bf-close-btn {
+    color: rgba(255, 255, 255, 0.75) !important;
+    flex-shrink: 0;
+    &:hover { background: rgba(255,255,255,0.12) !important; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  CONTENIDO (área del formulario)
+// ════════════════════════════════════════════════════════════
+.bf-content {
+  padding: 20px 24px !important;
+  max-height: 65vh;
+  overflow-y: auto;
+  background-color: $dialog-bg;
+
+  // Scrollbar personalizada
+  &::-webkit-scrollbar       { width: 5px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: rgba(198,40,40,0.40); border-radius: 3px; }
+}
+
+.bf-progress {
+  margin-bottom: 16px;
+  border-radius: 2px;
+}
+
+// Caja de error
+.bf-error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: $error-bg;
+  border: 1px solid $error-border;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  animation: shake 0.30s ease;
+
+  mat-icon { color: var(--accent-danger-soft); font-size: 18px; width: 18px; height: 18px; flex-shrink: 0; }
+  span     { color: var(--accent-danger-soft); font-size: 13px; line-height: 1.5; }
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-5px); }
+  75%     { transform: translateX(5px); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  FORMULARIO
+// ════════════════════════════════════════════════════════════
+.bf-form { display: flex; flex-direction: column; gap: 0; }
+
+// Etiqueta de sección
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 8px 0 14px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: $text-dim;
+
+  .section-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: rgba(198, 40, 40, 0.70);
+  }
+}
+
+.section-divider {
+  border-color: $border-color !important;
+  margin: 12px 0 16px !important;
+}
+
+// Fila de dos campos lado a lado
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 4px;
+}
+
+// Campo individual
+.form-field {
+  width: 100%;
+
+  &.full-width { grid-column: 1 / -1; }
+
+  // Sobreescribir colores del input para el tema oscuro
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper {
+      background-color: $input-bg !important;
+    }
+
+    // Borde en reposo
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: $border-color !important;
+    }
+
+    // Borde en foco → rojo de la marca
+    .mdc-text-field--focused {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: $red-primary !important;
+        border-width: 2px !important;
+      }
+    }
+
+    // Label flotante en foco
+    .mat-mdc-floating-label.mdc-floating-label--float-above {
+      color: $red-primary !important;
+    }
+
+    // Texto del input
+    .mat-mdc-input-element,
+    .mat-mdc-select-value-text { color: $text-primary; }
+
+    // Opciones del select
+    .mat-mdc-select-arrow { color: $text-dim; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ACCIONES (pie del diálogo)
+// ════════════════════════════════════════════════════════════
+.bf-actions {
+  padding: 14px 24px !important;
+  background-color: var(--bg-actions-bar);
+  border-top: 1px solid $border-color;
+  display: flex;
+  gap: 10px;
+
+  .btn-cancel {
+    color: $text-dim !important;
+    gap: 4px;
+    &:hover { color: $text-primary !important; }
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+
+  .btn-save {
+    padding: 0 24px;
+    height: 42px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    gap: 8px;
+    transition: box-shadow 0.20s ease !important;
+
+    &:not([disabled]):hover {
+      box-shadow: 0 4px 14px rgba(198, 40, 40, 0.45) !important;
+    }
+
+    &[disabled] { opacity: 0.45 !important; }
+
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+}
+
+// Animación icono "guardando"
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spin-icon { animation: spin 0.85s linear infinite; }
+
+// ════════════════════════════════════════════════════════════
+//  RESPONSIVE
+// ════════════════════════════════════════════════════════════
+@media (max-width: 480px) {
+  .form-row { grid-template-columns: 1fr; }
+  .bf-content { padding: 16px 16px !important; }
+  .bf-actions { padding: 12px 16px !important; }
+}

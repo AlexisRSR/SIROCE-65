@@ -1,0 +1,132 @@
+<!-- src/app/features/tipos-emergencias/tipos-emergencias-form/tipos-emergencias-form.component.html -->
+<!-- ══════════════════════════════════════════════════════════
+     TiposEmergenciasFormComponent — Modal Alta / Edición
+     Campos: Nombre (text) | Descripción (textarea) | Prioridad (select)
+     ══════════════════════════════════════════════════════════ -->
+
+<div class="tef-wrapper">
+
+  <div mat-dialog-title class="tef-header" [ngClass]="getHeaderClass()">
+    <div class="tef-header-icon">
+      <mat-icon>{{ isEditMode ? 'edit' : 'add_circle_outline' }}</mat-icon>
+    </div>
+    <div class="tef-header-text">
+      <h2 class="tef-title">{{ isEditMode ? 'Editar Incidente' : 'Nuevo Incidente' }}</h2>
+      <p class="tef-subtitle">
+        {{ isEditMode ? 'Modifica los datos del incidente seleccionado' : 'Completa el formulario para agregar al catálogo' }}
+      </p>
+    </div>
+    <button mat-icon-button class="tef-close" (click)="onCancel()" [disabled]="isSaving" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="tef-content">
+    <mat-progress-bar *ngIf="isSaving" mode="indeterminate" class="tef-progress"></mat-progress-bar>
+
+    <div class="tef-error" *ngIf="errorMsg" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMsg }}</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate id="tef-form" class="tef-form">
+
+      <div class="form-row" style="margin-bottom: 10px;">
+        <mat-form-field appearance="outline" class="form-field" style="width: 58%; margin-right: 2%;">
+          <mat-label>Nombre del incidente*</mat-label>
+          <mat-select formControlName="nombre" (selectionChange)="onIncidentSelectionChange($event.value)">
+            
+            <mat-optgroup label="⚠️ EMERGENCIAS TÍPICAS">
+              <mat-option *ngFor="let emg of LISTA_INCIDENTES.emergencias" [value]="emg.nombre">
+                {{ emg.nombre }}
+              </mat-option>
+            </mat-optgroup>
+
+            <mat-optgroup label="💼 SERVICIOS A LA COMUNIDAD">
+              <mat-option *ngFor="let srv of LISTA_INCIDENTES.servicios" [value]="srv.nombre">
+                {{ srv.nombre }}
+              </mat-option>
+            </mat-optgroup>
+
+            <mat-optgroup label="🔧 PERSONALIZADO">
+              <mat-option value="Otro">Otro (Especificar motivo...)</mat-option>
+            </mat-optgroup>
+
+          </mat-select>
+          <mat-icon matSuffix class="field-icon" style="color: var(--text-faint)">label</mat-icon>
+          <mat-error *ngIf="f['nombre'].hasError('required')">Obligatorio.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" style="width: 40%;">
+          <mat-label>Categoría*</mat-label>
+          <mat-select formControlName="categoria">
+            <mat-option value="Emergencia">Emergencia</mat-option>
+            <mat-option value="Servicio">Servicio</mat-option>
+          </mat-select>
+          <mat-icon matSuffix class="field-icon" style="color: var(--text-faint)">category</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row" *ngIf="form.get('nombre')?.value === 'Otro'" style="margin-bottom: 10px;">
+        <mat-form-field appearance="outline" class="form-field" style="width: 100%;">
+          <mat-label>Escriba el nombre del incidente personalizado*</mat-label>
+          <input matInput formControlName="nombreOtro" placeholder="Ej. Rescate de animal, Árbol caído, etc." maxlength="100" autocomplete="off">
+          <mat-icon matSuffix class="field-icon" style="color: var(--text-faint)">edit_note</mat-icon>
+          <mat-error *ngIf="f['nombreOtro'].hasError('required')">Debe especificar el nombre del nuevo incidente.</mat-error>
+          <mat-error *ngIf="f['nombreOtro'].hasError('minlength')">Mínimo 3 letras.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row" style="margin-bottom: 10px;">
+        <mat-form-field appearance="outline" class="form-field" style="width: 48%; margin-right: 2%;">
+          <mat-label>Prioridad de respuesta*</mat-label>
+          <mat-select formControlName="prioridad">
+            <mat-select-trigger>{{ form.get('prioridad')?.value }}</mat-select-trigger>
+            <mat-option *ngFor="let p of PRIORIDADES" [value]="p">
+              <div class="priority-option">
+                <mat-icon [ngClass]="'icon-' + p.toLowerCase()">
+                  {{ p === 'Alta' ? 'priority_high' : p === 'Media' ? 'drag_handle' : 'keyboard_arrow_down' }}
+                </mat-icon>
+                <span>{{ p }}</span>
+              </div>
+            </mat-option>
+          </mat-select>
+          <mat-icon matSuffix class="field-icon" style="color: var(--text-faint)">flag</mat-icon>
+          <mat-error *ngIf="f['prioridad'].hasError('required')">Obligatorio.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" style="width: 50%;">
+          <mat-label>Unidad Ideal (Opcional)</mat-label>
+          <mat-select formControlName="idTipoV">
+            <mat-option [value]="null">-- Ninguna específica --</mat-option>
+            <mat-option *ngFor="let t of tiposVehiculos" [value]="t.ID_TIPO_V">
+              {{ t.TIPO }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matSuffix class="field-icon" style="color: var(--text-faint)">local_shipping</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field" style="width: 100%;">
+          <mat-label>Descripción (opcional)</mat-label>
+          <textarea matInput formControlName="descripcion" placeholder="Breve descripción de cuándo aplica este tipo de incidente…" rows="3" maxlength="300"></textarea>
+        </mat-form-field>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="tef-actions" align="end">
+    <button mat-button class="btn-cancel" type="button" (click)="onCancel()" [disabled]="isSaving">
+      <mat-icon>close</mat-icon> Cancelar
+    </button>
+
+    <button mat-raised-button color="primary" class="btn-save" type="submit" form="tef-form" [disabled]="form.invalid || isSaving">
+      <mat-icon *ngIf="!isSaving">save</mat-icon>
+      <mat-icon *ngIf="isSaving" class="spin-icon">sync</mat-icon>
+      <span>{{ isSaving ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Registrar') }}</span>
+    </button>
+  </mat-dialog-actions>
+
+</div>

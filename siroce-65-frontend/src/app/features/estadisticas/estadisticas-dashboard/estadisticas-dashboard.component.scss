@@ -1,0 +1,259 @@
+.stats-container {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header & Forms */
+.page-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  .page-title-area {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  .title-icon-wrap {
+    width: 48px;
+    height: 48px;
+    background: rgba(244, 67, 54, 0.1);
+    color: #f44336;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    mat-icon { font-size: 28px; width: 28px; height: 28px; }
+  }
+  .page-title { margin: 0; font-size: 24px; font-weight: 600; color: var(--text-bright); }
+  .page-subtitle { margin: 0; font-size: 14px; color: var(--text-dim); }
+}
+
+.date-filter-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .date-field {
+    width: 320px;
+    mat-label, input { color: var(--text-primary); }
+  }
+
+  .btn-filtrar {
+    height: 48px;
+    border-radius: 8px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+}
+
+.loading-bar { margin-top: -10px; border-radius: 4px; }
+
+/* 🔴 Tarjetas KPI */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+
+.kpi-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px var(--shadow-kpi);
+  transition: transform 0.2s ease-in-out;
+
+  &:hover { transform: translateY(-4px); }
+
+  .kpi-icon {
+    font-size: 44px; width: 44px; height: 44px;
+  }
+  .kpi-data {
+    display: flex; flex-direction: column;
+  }
+  .kpi-value {
+    font-size: 36px; font-weight: 700; color: var(--text-bright); line-height: 1.1;
+    small { font-size: 18px; color: var(--text-dim); margin-left: 4px; }
+  }
+  .kpi-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.5px; margin-top: 4px;
+  }
+
+  // Mapeo semántico único: cada tarjeta usa una sola variable de acento
+  &.card-total {
+    border-bottom: 4px solid var(--accent-danger);
+    .kpi-icon { color: var(--accent-danger); }
+    .kpi-label { color: var(--accent-danger-soft); }
+  }
+  &.card-atencion {
+    border-bottom: 4px solid var(--accent-info);
+    .kpi-icon { color: var(--accent-info); }
+    .kpi-label { color: var(--accent-info-soft); }
+  }
+  &.card-finalizadas {
+    border-bottom: 4px solid var(--accent-success);
+    .kpi-icon { color: var(--accent-success); }
+    .kpi-label { color: var(--accent-success-soft); }
+  }
+  &.card-canceladas {
+    border-bottom: 4px solid var(--accent-danger);
+    .kpi-icon { color: var(--accent-danger); }
+    .kpi-label { color: var(--accent-danger-soft); }
+  }
+  &.card-tiempo {
+    border-bottom: 4px solid var(--accent-warn);
+    .kpi-icon { color: var(--accent-warn); }
+    .kpi-label { color: var(--accent-warn-soft); }
+  }
+}
+
+/* 🔴 Gráficos y Cuadrícula a prueba de desbordamientos */
+.charts-grid {
+  display: grid;
+  /* 🔥 El minmax(0, 1fr) evita que ApexCharts expanda y rompa las cajas */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.chart-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  padding: 20px;
+  min-height: 350px;
+  overflow: hidden; /* Asegura que nada se salga del borde */
+}
+
+.col-span-1 { grid-column: span 1; }
+.col-span-2 { grid-column: span 2; }
+
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .col-span-1, .col-span-2 { grid-column: span 1; }
+}
+
+@media (max-width: 768px) {
+  .charts-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.empty-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 350px;
+  color: var(--text-faint);
+  mat-icon { font-size: 48px; width: 48px; height: 48px; margin-bottom: 16px; opacity: 0.5;}
+  p { font-size: 16px; font-weight: 500; }
+}
+
+/* 🔴 Fila de Logística */
+.logistics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+  gap: 24px;
+  margin-top: 24px;
+}
+
+/* Estilos Panel de Insumos */
+.alert-card {
+  .alert-title {
+    display: flex; align-items: center; gap: 8px; color: #ff9800; margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 600;
+    mat-icon { font-size: 24px; width: 24px; height: 24px; }
+  }
+}
+.alert-list { display: flex; flex-direction: column; gap: 12px; }
+.alert-item {
+  display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-radius: 8px;
+  background: rgba(255, 152, 0, 0.1); border-left: 4px solid #ff9800;
+  
+  .alert-icon { color: #ff9800; mat-icon { font-size: 28px; width: 28px; height: 28px; } }
+  .alert-info {
+    flex: 1;
+    h4 { margin: 0 0 4px 0; font-size: 16px; color: var(--text-bright); font-weight: 500;}
+    p { margin: 0; font-size: 13px; color: var(--text-dim); strong { color: #ff9800; font-size: 14px;} }
+  }
+  .alert-badge { 
+    padding: 6px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    background: #ff9800; color: #fff; border-radius: 4px;
+    &.danger { background: #f44336; }
+  }
+}
+.empty-alerts {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; height: 250px; color: #4caf50;
+  mat-icon { font-size: 56px; width: 56px; height: 56px; margin-bottom: 16px; opacity: 0.9;}
+  p { font-size: 18px; font-weight: 600; margin: 0; }
+  small { margin-top: 8px; color: var(--text-dim); font-size: 13px; }
+}
+
+/* Estilos Pizarra de Flota */
+.fleet-card {
+  .fleet-title { 
+    display: flex; align-items: center; gap: 8px; color: #4caf50; margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 600;
+    mat-icon { font-size: 24px; width: 24px; height: 24px; }
+  }
+}
+.fleet-list { display: flex; flex-direction: column; gap: 12px; }
+.fleet-item {
+  display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 8px;
+  background: var(--bg-inset); border-left: 4px solid var(--accent-gray);
+
+  .fleet-icon { color: var(--text-dim); mat-icon { font-size: 28px; width: 28px; height: 28px; } }
+  .fleet-info {
+    flex: 1;
+    h4 { margin: 0 0 4px 0; font-size: 15px; color: var(--text-bright); font-weight: 500;}
+    p { margin: 0; font-size: 13px; color: var(--text-dim); strong { color: var(--text-medium); } }
+  }
+  .fleet-badge {
+    padding: 6px 12px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    color: #fff; border-radius: 4px; text-transform: uppercase; text-align: center; min-width: 90px;
+  }
+}
+
+/* Colores Semánticos */
+.bg-disponible { background: #4caf50; }       /* Verde */
+.bg-servicio { background: #2196f3; }         /* Azul */
+.bg-mantenimiento { background: #ff9800; }    /* Naranja */
+.bg-fuera { background: #f44336; }            /* Rojo */
+
+.personnel-badge {
+  font-size: 16px !important;
+  padding: 8px 14px !important;
+  border-radius: 50% !important;
+  min-width: unset !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Estilos Estado de Fuerza */
+.personnel-card {
+  .fleet-title { 
+    display: flex; align-items: center; gap: 8px; 
+    color: #00bcd4; 
+    margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 600;
+    mat-icon { font-size: 24px; width: 24px; height: 24px; }
+  }
+}
+
+/* Estilos Actividad Reciente */
+.activity-card {
+  .fleet-title { 
+    display: flex; align-items: center; gap: 8px; 
+    color: #2196f3; 
+    margin-top: 0; margin-bottom: 20px; font-size: 18px; font-weight: 600;
+    mat-icon { font-size: 24px; width: 24px; height: 24px; }
+  }
+}

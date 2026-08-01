@@ -1,0 +1,172 @@
+<div class="if-wrapper">
+
+  <div mat-dialog-title class="if-header">
+    <div class="if-header-icon">
+      <mat-icon>{{ isEditMode ? 'edit' : 'add' }}</mat-icon>
+    </div>
+    <div class="if-header-text">
+      <h2 class="if-title">{{ isEditMode ? 'Editar Recurso' : 'Nuevo Recurso' }}</h2>
+      <p class="if-subtitle">
+        {{ isEditMode ? 'Actualiza los datos del ítem seleccionado' : 'Registra un nuevo elemento en el inventario' }}
+      </p>
+    </div>
+    <button mat-icon-button class="if-close" (click)="onCancel()" [disabled]="isSaving">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="if-content">
+    <mat-progress-bar *ngIf="isSaving" mode="indeterminate" class="if-progress"></mat-progress-bar>
+    <div class="if-error" *ngIf="errorMsg" role="alert">
+      <mat-icon>error_outline</mat-icon><span>{{ errorMsg }}</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate id="if-form" class="if-form">
+
+      <p class="section-label" style="margin-bottom: 15px;">
+        <mat-icon class="section-icon">inventory_2</mat-icon>
+        Identificación del Recurso
+      </p>
+
+      <div class="form-row" style="display: flex; gap: 15px;">
+        
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>Clasificación General*</mat-label>
+          <mat-select formControlName="tipoInsumo" (selectionChange)="onTipoChange($event.value)">
+            <mat-select-trigger>
+              <span class="select-trigger-wrap" *ngIf="f['tipoInsumo'].value" style="display: flex; align-items: center; gap: 8px;">
+                <mat-icon class="trigger-icon" [style.color]="getTipoColorActivo()">{{ getTipoIconActivo() }}</mat-icon>
+                <span>{{ f['tipoInsumo'].value }}</span>
+              </span>
+            </mat-select-trigger>
+            <mat-option *ngFor="let t of TIPOS" [value]="t.value" style="height: auto; padding: 12px 16px;">
+              <div class="option-row" style="display: flex; align-items: center; gap: 12px;">
+                <mat-icon [style.color]="t.color">{{ t.icon }}</mat-icon>
+                <span style="font-size: 14px; white-space: normal; line-height: 1.4;">{{ t.label }}</span>
+              </div>
+            </mat-option>
+          </mat-select>
+          <mat-error *ngIf="f['tipoInsumo'].hasError('required')">Requerido.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" style="flex: 2;">
+          <mat-label>Nombre del elemento*</mat-label>
+          <mat-select formControlName="nombre" (selectionChange)="onNombreChange($event.value)" [disabled]="!f['tipoInsumo'].value">
+            <mat-option *ngFor="let n of nombresDisponibles" [value]="n.nombre">
+              {{ n.nombre }}
+            </mat-option>
+            <mat-option value="Otro" style="color: #ffb74d; font-weight: bold;">Otro (Especificar manual...)</mat-option>
+          </mat-select>
+          <mat-icon matSuffix class="field-icon" style="color: #90caf9;">label</mat-icon>
+          <mat-error *ngIf="f['nombre'].hasError('required')">Seleccione un nombre.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row" *ngIf="f['nombre'].value === 'Otro'" style="margin-bottom: 15px;">
+        <mat-form-field appearance="outline" class="form-field full-width">
+          <mat-label>Especifique el nombre del nuevo recurso*</mat-label>
+          <input matInput formControlName="nombreOtro" placeholder="Ej. Camilla rígida, Lámpara..." autocomplete="off">
+          <mat-icon matSuffix class="field-icon" style="color: #ffb74d">edit_note</mat-icon>
+          <mat-error *ngIf="f['nombreOtro'].hasError('required')">Debe escribir el nombre.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row" style="margin-bottom: 10px;">
+        <mat-form-field appearance="outline" class="form-field full-width" 
+                        [class.readonly-field]="f['nombre'].value !== 'Otro'">
+          <mat-label>Propósito / Uso principal</mat-label>
+          <input matInput formControlName="proposito" placeholder="Ej. Contener hemorragia..." 
+                 [readonly]="f['nombre'].value !== 'Otro'" autocomplete="off">
+          <mat-icon matSuffix class="field-icon" [style.color]="f['nombre'].value !== 'Otro' ? 'rgba(255,255,255,0.2)' : '#90caf9'">psychology</mat-icon>
+          <mat-hint *ngIf="f['nombre'].value !== 'Otro'">Asignado automáticamente por el sistema</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <ng-container *ngIf="f['tipoInsumo'].value === 'Herramienta' || f['tipoInsumo'].value === 'EPP'">
+        <p class="section-label" style="margin-top: 10px; margin-bottom: 10px; font-size: 12px; color: #ffb74d;">
+          <mat-icon class="section-icon" style="font-size: 16px; width: 16px; height: 16px; color: #ffb74d;">qr_code_scanner</mat-icon>
+          Datos de Trazabilidad (Obligatorios)
+        </p>
+        <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 5px;">
+          <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+            <mat-label>Marca*</mat-label>
+            <input matInput formControlName="marca" placeholder="Ej. 3M, Holmatro..." autocomplete="off">
+            <mat-error *ngIf="f['marca'].hasError('required')">Obligatorio.</mat-error>
+            <mat-error *ngIf="f['marca'].hasError('pattern')">Caracteres no válidos.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+            <mat-label>Modelo*</mat-label>
+            <input matInput formControlName="modelo" placeholder="Ej. TR100..." autocomplete="off">
+            <mat-error *ngIf="f['modelo'].hasError('required')">Obligatorio.</mat-error>
+            <mat-error *ngIf="f['modelo'].hasError('pattern')">Caracteres no válidos.</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+            <mat-label>No. de Serie*</mat-label>
+            <input matInput formControlName="numeroSerie" placeholder="Ej. SN-98765" autocomplete="off">
+            <mat-error *ngIf="f['numeroSerie'].hasError('required')">Obligatorio.</mat-error>
+            <mat-error *ngIf="f['numeroSerie'].hasError('pattern')">Caracteres no válidos.</mat-error>
+          </mat-form-field>
+        </div>
+      </ng-container>
+
+      <mat-divider class="section-divider" style="margin-top: 15px;"></mat-divider>
+
+      <p class="section-label" style="margin-bottom: 15px;">
+        <mat-icon class="section-icon">tune</mat-icon>
+        Control Operativo
+      </p>
+
+      <div class="form-row" style="display: flex; gap: 15px;">
+        
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>Cantidad en stock*</mat-label>
+          <input matInput type="number" formControlName="stock" placeholder="0" min="0" max="99999" (keydown)="bloquearCaracteres($event)">
+          <span matSuffix class="unit-suffix">unidades</span>
+          <mat-hint>Valores &lt; 10 detonan alerta</mat-hint>
+          <mat-error *ngIf="f['stock'].hasError('required')">Obligatorio.</mat-error>
+          <mat-error *ngIf="f['stock'].hasError('max')">Máx. 99,999 unidades.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>Estado operativo*</mat-label>
+          <mat-select formControlName="estado">
+            <mat-select-trigger>
+              <span class="select-trigger-wrap" *ngIf="f['estado'].value">
+                <mat-icon class="trigger-icon" style="color: #ffb74d;">{{ getEstadoIconActivo() }}</mat-icon>
+                <span>{{ f['estado'].value }}</span>
+              </span>
+            </mat-select-trigger>
+            <mat-option *ngFor="let e of ESTADOS" [value]="e.value">
+              <div class="option-row">
+                <mat-icon style="color: #ffb74d;">{{ e.icon }}</mat-icon>
+                <span>{{ e.label }}</span>
+              </div>
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row" style="margin-top: 10px;">
+        <mat-form-field appearance="outline" class="form-field full-width">
+          <mat-label>Notas adicionales (Opcional)</mat-label>
+          <textarea matInput formControlName="descripcion" placeholder="Detalles extra, estado de desgaste..." rows="2" maxlength="500"></textarea>
+        </mat-form-field>
+      </div>
+
+    </form>
+    </mat-dialog-content>
+
+  <mat-dialog-actions class="if-actions" align="end">
+    <button mat-button class="btn-cancel" (click)="onCancel()" [disabled]="isSaving">
+      <mat-icon>close</mat-icon> Cancelar
+    </button>
+    <button mat-raised-button color="primary" class="btn-save" type="submit" form="if-form" [disabled]="form.invalid || isSaving">
+      <mat-icon *ngIf="!isSaving">save</mat-icon>
+      <mat-icon *ngIf="isSaving" class="spin-icon">sync</mat-icon>
+      <span>{{ isSaving ? 'Guardando…' : (isEditMode ? 'Actualizar' : 'Registrar') }}</span>
+    </button>
+  </mat-dialog-actions>
+
+</div>

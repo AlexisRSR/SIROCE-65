@@ -1,0 +1,458 @@
+// ✅ REGLA SCSS: @use "sass:color" en la línea 1 (ANTES de cualquier regla CSS)
+@use "sass:color";
+// ══════════════════════════════════════════════════════════════
+//  ServiciosAsignacionComponent — Estilos del Panel de Despacho
+//  ✅ color.adjust() en lugar de darken() — Tema oscuro #212121
+// ══════════════════════════════════════════════════════════════
+
+// ── Variables ─────────────────────────────────────────────────
+// Rojos literales (Sass los necesita para color.adjust);
+// superficies y textos siguen al tema activo (CSS vars).
+$red-dark      : #b71c1c;
+$red-mid       : #c62828;
+$dialog-bg     : var(--bg-dialog);
+$panel-bg      : var(--bg-actions-bar);
+$card-bg       : var(--bg-card);
+// Tinte neutro en tema claro, rojizo en oscuro (ver --tint-* en styles.scss)
+$option-hover  : var(--tint-hover);
+$option-selected: var(--tint-active);
+$border        : var(--border-color);
+$text-primary  : var(--text-primary);
+$text-dim      : var(--text-dim);
+$text-faint    : var(--text-faint);
+
+// ════════════════════════════════════════════════════════════
+//  WRAPPER DEL DIALOG
+// ════════════════════════════════════════════════════════════
+.sa-wrapper {
+  background-color: $dialog-bg;
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 560px;
+}
+
+// ════════════════════════════════════════════════════════════
+//  ① CABECERA
+// ════════════════════════════════════════════════════════════
+.sa-header {
+  display: flex !important;
+  align-items: flex-start;
+  gap: 14px;
+  // ✅ color.adjust() para el degradado del header
+  background: linear-gradient(
+    135deg,
+    color.adjust($red-dark, $lightness: -8%) 0%,
+    $red-mid 100%
+  );
+  padding: 16px 20px;
+  margin: 0 !important;
+
+  .sa-header-icon {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    mat-icon { color: #fff; font-size: 24px; width: 24px; height: 24px; }
+  }
+
+  .sa-header-text { flex: 1; min-width: 0; }
+
+  .sa-title {
+    margin: 0;
+    font-size: 18px; font-weight: 700;
+    color: #fff; line-height: 1.2;
+  }
+
+  .sa-subtitle {
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.72);
+    display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+
+    .sub-icon {
+      font-size: 13px; width: 13px; height: 13px;
+      vertical-align: middle;
+    }
+    .sub-sep { margin: 0 2px; }
+  }
+
+  .sa-close-btn {
+    color: rgba(255, 255, 255, 0.75) !important;
+    flex-shrink: 0; margin-top: -4px;
+    &:hover { background: rgba(255, 255, 255, 0.12) !important; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ② BARRA DE RESUMEN
+// ════════════════════════════════════════════════════════════
+.sa-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background-color: rgba(183, 28, 28, 0.10);
+  border-bottom: 1px solid rgba(183, 28, 28, 0.25);
+  font-size: 13px;
+  color: var(--accent-danger-soft);
+
+  mat-icon {
+    font-size: 16px; width: 16px; height: 16px;
+    color: color.adjust($red-mid, $lightness: 20%); // ✅ color.adjust()
+    flex-shrink: 0;
+  }
+
+  strong { font-weight: 700; }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ③ CAJA DE ERROR
+// ════════════════════════════════════════════════════════════
+.sa-error {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(183, 28, 28, 0.10);
+  border-bottom: 1px solid rgba(239, 83, 80, 0.30);
+  padding: 10px 20px;
+  font-size: 13px; color: var(--accent-danger-soft);
+  animation: shake 0.25s ease;
+
+  mat-icon { font-size: 17px; width: 17px; height: 17px; flex-shrink: 0; }
+}
+
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-4px); }
+  75%     { transform: translateX(4px); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ④ CONTENIDO — mat-dialog-content
+// ════════════════════════════════════════════════════════════
+.sa-content {
+  padding: 0 !important;
+  max-height: 55vh;
+  overflow: hidden;
+  background-color: $dialog-bg;
+}
+
+// ── mat-tab-group ─────────────────────────────────────────────
+.sa-tabs {
+  height: 100%;
+
+  // Encabezado de las pestañas
+  ::ng-deep {
+    .mat-mdc-tab-header {
+      background-color: $panel-bg;
+      border-bottom: 1px solid $border;
+    }
+
+    // Texto e ícono de la pestaña inactiva
+    .mat-mdc-tab:not(.mdc-tab--active) {
+      .mdc-tab__text-label { color: $text-dim !important; }
+      .mat-icon           { color: $text-dim !important; }
+    }
+
+    // Pestaña activa
+    .mat-mdc-tab.mdc-tab--active {
+      .mdc-tab__text-label { color: $text-primary !important; font-weight: 600; }
+      .mat-icon           { color: $red-mid !important; }
+    }
+
+    // Barra indicadora de pestaña activa → rojo de la marca
+    .mdc-tab-indicator__content--underline {
+      border-color: $red-mid !important;
+      border-top-width: 3px !important;
+    }
+
+    // Ripple hover
+    .mat-mdc-tab:hover .mat-mdc-tab-ripple {
+      background-color: rgba(183, 28, 28, 0.08) !important;
+    }
+
+    // Cuerpo de las pestañas (scrollable)
+    .mat-mdc-tab-body-content {
+      height: 100%;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      background-color: $dialog-bg;
+
+      &::-webkit-scrollbar       { width: 5px !important; }
+      &::-webkit-scrollbar-track { background: transparent !important; }
+      &::-webkit-scrollbar-thumb {
+        // 🔥 Mismo color exacto que el formulario
+        background: color.adjust($red-dark, $lightness: 10%, $alpha: -0.4) !important;
+        border-radius: 3px !important;
+      }
+      &::-webkit-scrollbar-thumb:hover {
+        background: color.adjust($red-dark, $lightness: 15%, $alpha: -0.2) !important;
+      }
+    }
+  }
+}
+
+// ── Etiqueta de pestaña ───────────────────────────────────────
+.tab-icon {
+  font-size: 18px; width: 18px; height: 18px;
+  margin-right: 6px; vertical-align: middle;
+}
+.tab-text { vertical-align: middle; }
+
+.tab-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%;
+  font-size: 11px; font-weight: 700; line-height: 1;
+  background-color: $red-mid;
+  color: #fff;
+  margin-left: 6px;
+  vertical-align: middle;
+  // ✅ color.adjust() para la sombra del badge
+  box-shadow: 0 0 0 2px color.adjust($red-dark, $alpha: -0.6);
+}
+
+// ── Barra de progreso (carga de cada lista) ───────────────────
+.list-loader { border-radius: 0; margin: 0; }
+
+// ── Estado vacío de la lista ──────────────────────────────────
+.list-empty {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 48px 24px; text-align: center;
+
+  mat-icon { font-size: 52px; width: 52px; height: 52px; color: $text-faint; margin-bottom: 12px; }
+  p        { margin: 0 0 6px; font-size: 16px; font-weight: 500; color: $text-dim; }
+  span     { font-size: 12px; color: $text-faint; }
+}
+
+// ════════════════════════════════════════════════════════════
+//  mat-selection-list  (Angular Material 16 MDC)
+// ════════════════════════════════════════════════════════════
+.sa-selection-list {
+  padding: 6px 0 !important;
+
+  ::ng-deep {
+
+    // ── Item base ────────────────────────────────────────────
+    .mdc-list-item {
+      background-color: transparent !important;
+      transition: background-color 0.12s ease;
+      min-height: 60px !important;
+      border-bottom: 1px solid $border;
+      padding: 0 16px !important;
+
+      &:last-child { border-bottom: none; }
+      &:hover      { background-color: $option-hover !important; }
+    }
+
+    // ── Item SELECCIONADO ─────────────────────────────────────
+    .mdc-list-item--selected {
+      background-color: $option-selected !important;
+
+      // Color del checkbox → rojo de la marca
+      .mdc-checkbox__background {
+        background-color: $red-mid !important;
+        border-color     : $red-mid !important;
+      }
+      .mdc-checkbox__checkmark { color: #fff !important; }
+    }
+
+    // Checkbox sin seleccionar
+    .mdc-checkbox__background {
+      background-color: transparent !important;
+      border-color: var(--border-input) !important;
+    }
+
+    // Texto principal del option (ocultamos el default para usar nuestro template)
+    .mdc-list-item__primary-text {
+      color: $text-primary;
+      font-size: 14px;
+      width: 100%;
+    }
+  }
+}
+
+// ── Fila de contenido dentro del option ───────────────────────
+.sa-list-option { cursor: pointer; }
+
+.option-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px 0;
+}
+
+// ── Ícono del vehículo ────────────────────────────────────────
+.v-icon-wrap {
+  width: 38px; height: 38px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+  // Variantes por tipo de vehículo (íconos tematizados para contraste)
+  &.v-icon-bomba   {
+    background: rgba(239, 83, 80, 0.15);
+    // ✅ color.adjust() para el borde
+    border: 1px solid color.adjust(#ef5350, $alpha: -0.65);
+    mat-icon { color: var(--accent-danger); }
+  }
+  &.v-icon-ambulan {
+    background: rgba(102, 187, 106, 0.15);
+    border: 1px solid color.adjust(#66bb6a, $alpha: -0.65);
+    mat-icon { color: var(--accent-success); }
+  }
+  &.v-icon-rescate {
+    background: rgba(149, 117, 205, 0.15);
+    border: 1px solid color.adjust(#9575cd, $alpha: -0.65);
+    mat-icon { color: var(--accent-deep-purple); }
+  }
+  &.v-icon-pickup {
+    background: rgba(79, 195, 247, 0.15);
+    border: 1px solid color.adjust(#4fc3f7, $alpha: -0.65);
+    mat-icon { color: var(--accent-cyan); }
+  }
+  &.v-icon-default {
+    background: var(--bg-badge-neutral);
+    border: 1px solid $border;
+    mat-icon { color: $text-dim; }
+  }
+}
+
+// ── Avatar circular para bomberos ─────────────────────────────
+.b-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg,
+    color.adjust($red-dark, $lightness: -5%) 0%,    // ✅ color.adjust()
+    color.adjust($red-mid,  $lightness: 5%)  100%    // ✅ color.adjust()
+  );
+  border: 2px solid rgba(183, 28, 28, 0.40);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  color: #fff; flex-shrink: 0;
+  user-select: none;
+  letter-spacing: 0.5px;
+}
+
+// ── Cuerpo del option (nombre + subtítulo) ────────────────────
+.option-body {
+  flex: 1; min-width: 0;
+
+  .opt-title {
+    margin: 0;
+    font-size: 14px; font-weight: 600; color: $text-primary;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .opt-sub {
+    margin: 2px 0 0;
+    font-size: 12px; color: $text-dim;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+}
+
+// ── Chip de tipo de vehículo ──────────────────────────────────
+.opt-tipo {
+  font-size: 11px; font-weight: 600;
+  padding: 2px 7px; border-radius: 10px;
+  background: var(--bg-chip);
+  color: $text-dim; white-space: nowrap; flex-shrink: 0;
+}
+
+// ── Badge de estado ───────────────────────────────────────────
+.opt-estado {
+  font-size: 11px; font-weight: 700;
+  padding: 2px 8px; border-radius: 10px;
+  white-space: nowrap; flex-shrink: 0;
+}
+
+// Estados operativos (texto tematizado: claro en oscuro, oscuro en claro)
+.estado-ok      { background: rgba(102,187,106,0.15); color: var(--accent-success-soft); border: 1px solid rgba(102,187,106,0.35); }
+.estado-activo  { background: rgba(100,181,246,0.15); color: var(--accent-info-soft); border: 1px solid rgba(100,181,246,0.35); }
+.estado-taller  { background: rgba(255,167, 38,0.15); color: var(--accent-warn-soft); border: 1px solid rgba(255,167, 38,0.35); }
+.estado-fuera   { background: rgba(239, 83, 80,0.15); color: var(--accent-danger-soft); border: 1px solid rgba(239, 83, 80,0.35); }
+.estado-default { background: var(--bg-badge-neutral); color: $text-dim; border: 1px solid $border; }
+
+// ════════════════════════════════════════════════════════════
+//  ⑤ ACCIONES
+// ════════════════════════════════════════════════════════════
+.sa-actions {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px !important;
+  background-color: $panel-bg;
+  border-top: 1px solid $border;
+
+  .btn-cancel {
+    color: $text-dim !important; gap: 4px;
+    &:hover { color: $text-primary !important; }
+    mat-icon { font-size: 18px; width: 18px; height: 18px; }
+  }
+
+  .btn-despachar {
+    padding: 0 24px; height: 44px;
+    font-size: 14px; font-weight: 700; letter-spacing: 0.4px; gap: 8px;
+    transition: box-shadow 0.20s ease !important;
+    mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+    // ✅ color.adjust() para la sombra de hover
+    &:not([disabled]):hover {
+      box-shadow: 0 4px 16px color.adjust($red-mid, $lightness: -5%, $alpha: -0.55) !important;
+    }
+    &[disabled] { opacity: 0.45 !important; }
+  }
+}
+
+// Ícono giratorio mientras se procesa el despacho
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin-icon { animation: spin 0.85s linear infinite; }
+
+// ════════════════════════════════════════════════════════════
+//  RESPONSIVE
+// ════════════════════════════════════════════════════════════
+@media (max-width: 600px) {
+  .sa-wrapper    { min-width: unset; }
+  .sa-header     { flex-wrap: wrap; }
+  .option-row    { gap: 8px; }
+  .opt-tipo      { display: none; }  // Ocultar en mobile para ahorrar espacio
+}
+
+/* ==========================================================================
+   FIX PARA EL SCROLL DE LA VENTANA DE ASIGNACIÓN
+   ========================================================================== */
+
+/* 1. Límite general de la ventana (Igual a tu form: 68vh) */
+.sa-content {
+  max-height: 68vh !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+
+  &::-webkit-scrollbar { width: 5px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: color.adjust($red-dark, $lightness: 10%, $alpha: -0.4);
+    border-radius: 3px;
+  }
+}
+
+/* 2. Límite interno solo para la lista de casillas */
+::ng-deep .sa-selection-list {
+  max-height: 50vh !important; 
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 8px; 
+
+  &::-webkit-scrollbar { width: 5px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  
+  &::-webkit-scrollbar-thumb {
+    /* 🔥 Magia roja igual a la de tu formulario */
+    background: color.adjust($red-dark, $lightness: 10%, $alpha: -0.4);
+    border-radius: 3px;
+  }
+  
+  &::-webkit-scrollbar-thumb:hover {
+    background: color.adjust($red-dark, $lightness: 15%, $alpha: -0.2);
+  }
+}

@@ -1,0 +1,403 @@
+// src/app/features/auth/login/login.component.scss
+// ══════════════════════════════════════════════════════════════
+//  SIROCE-65 — Estilos de la pantalla de Login
+//  Diseño: oscuro (#121212) con acento rojo (#c62828)
+//  Referencia visual: Figura 56 del documento de tesis SASE29
+// ══════════════════════════════════════════════════════════════
+
+// ── Variables ─────────────────────────────────────────────────
+// Los rojos de marca son constantes; el resto sigue al tema
+// activo mediante las CSS Custom Properties de styles.scss.
+$red-primary   : #c62828;
+$red-dark      : #b71c1c;
+$red-light     : #ef5350;
+$page-bg       : var(--bg-page);
+$card-bg       : var(--bg-dialog-surface);
+$field-border  : var(--border-strong);
+$text-primary  : var(--text-primary);
+$text-muted    : var(--text-dim);
+$error-bg      : rgba(198, 40, 40, 0.10);
+$error-border  : rgba(239, 83, 80, 0.40);
+
+// ════════════════════════════════════════════════════════════
+//  PÁGINA COMPLETA (fondo oscuro fullscreen)
+// ════════════════════════════════════════════════════════════
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: $page-bg;
+
+  // Sutiles destellos rojos en las esquinas para dar profundidad
+  background-image:
+    radial-gradient(ellipse at 15% 40%,  rgba(198, 40, 40, 0.07) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 60%,  rgba(198, 40, 40, 0.05) 0%, transparent 55%);
+}
+
+// ── Contenedor que centra la tarjeta ──────────────────────────
+// El padding vive aquí (y no en .login-page) para que el
+// <app-public-header> quede pegado a los bordes de la pantalla,
+// a todo el ancho, y no herede ningún margen de la página.
+.login-wrapper {
+  width: 100%;
+  max-width: 420px;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 72px; // padding-bottom deja espacio al footer fijo
+  box-sizing: border-box;
+}
+
+// ════════════════════════════════════════════════════════════
+//  TARJETA
+// ════════════════════════════════════════════════════════════
+.login-card {
+  width: 100%;
+  background-color: $card-bg !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 10px !important;
+  box-shadow: 0 20px 60px var(--shadow-card) !important;
+  overflow: hidden;
+}
+
+// ── Cabecera roja (franja superior de la tarjeta) ─────────────
+.login-card-header {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, $red-dark 0%, $red-primary 55%, $red-light 100%);
+  padding: 20px 16px 12px;
+  text-align: center;
+}
+
+// Círculos decorativos de fondo (no interactivos)
+.header-bg-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+
+  &:nth-child(1) {
+    width: 160px; height: 160px;
+    top: -50px;   right: -30px;
+  }
+
+  &--sm {
+    width: 80px; height: 80px;
+    bottom: -20px; left: 20px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+}
+
+.header-fire-icon {
+  position: relative;
+  height: 80px;
+  width: auto;
+  object-fit: contain;
+  // Sombra suave para dar relieve al escudo
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.30));
+  display: block;
+  margin: 0 auto 10px;
+}
+
+.header-system-name {
+  position: relative;
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 5px;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.header-subtitle {
+  position: relative;
+  margin: 6px 0 0;
+  font-size: 11px;
+  letter-spacing: 0.8px;
+  color: rgba(255, 255, 255, 0.70);
+  line-height: 1.4;
+}
+
+// ── Contenido (formulario) ─────────────────────────────────────
+.login-card-content {
+  padding: 16px 24px 4px !important;
+}
+
+.form-section-label {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: $text-muted;
+  margin: 0 0 12px;
+  user-select: none;
+}
+
+// Barra de progreso de carga
+.login-progress-bar {
+  margin-bottom: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+// ── Caja de error ──────────────────────────────────────────────
+.login-error-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background-color: $error-bg;
+  border: 1px solid $error-border;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  animation: shake 0.35s ease;
+
+  .error-icon {
+    color: $red-light;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+
+  .error-text {
+    color: var(--accent-danger-soft);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  // ── Bloqueo temporal por fuerza bruta (OWASP): alerta crítica ──
+  &--locked {
+    background-color: $red-primary;
+    border: 1px solid $red-dark;
+    box-shadow: 0 0 0 3px rgba(198, 40, 40, 0.25);
+
+    .error-icon {
+      color: #ffffff;
+    }
+
+    .error-text {
+      color: #ffffff;
+      font-weight: 600;
+    }
+  }
+}
+
+// Animación de sacudida para el mensaje de error
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-6px); }
+  40%       { transform: translateX(6px); }
+  60%       { transform: translateX(-4px); }
+  80%       { transform: translateX(4px); }
+}
+
+// ── Campos del formulario ──────────────────────────────────────
+.login-field {
+  width: 100%;
+  margin-bottom: 2px;
+
+  // Forzar color del borde del campo en estado idle/focus
+  // Compatible con Angular Material dark theme personalizado
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper {
+      background-color: var(--bg-inset) !important;
+    }
+
+    // Borde del outline field
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: $field-border !important;
+    }
+
+    // Borde en foco: rojo de la marca
+    .mdc-text-field--focused {
+      .mdc-notched-outline__leading,
+      .mdc-notched-outline__notch,
+      .mdc-notched-outline__trailing {
+        border-color: $red-primary !important;
+        border-width: 2px !important;
+      }
+    }
+
+    // Label flotante en foco
+    .mat-mdc-floating-label.mdc-floating-label--float-above {
+      color: $red-primary !important;
+    }
+
+    // Input text color
+    .mat-mdc-input-element { color: $text-primary; }
+  }
+}
+
+.field-icon {
+  color: $text-muted;
+  font-size: 20px;
+  width: 20px;
+  height: 20px;
+}
+
+// Botón toggle de visibilidad de contraseña
+.password-toggle-btn {
+  color: $text-muted !important;
+  &:hover { color: $text-primary !important; }
+}
+
+// ── Botón de submit ────────────────────────────────────────────
+.login-submit-btn {
+  width: 100%;
+  height: 48px;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border-radius: 6px !important;
+  transition: box-shadow 0.20s ease, opacity 0.15s ease !important;
+
+  &:not([disabled]):hover {
+    box-shadow: 0 4px 18px rgba(198, 40, 40, 0.50) !important;
+  }
+
+  &[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed;
+  }
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// Ícono giratorio de "cargando"
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spin-icon {
+  animation: spin 0.9s linear infinite;
+}
+
+// ── Footer de la tarjeta ───────────────────────────────────────
+.login-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--border-color);
+  color: $text-muted;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+
+  .footer-lock-icon {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+    color: $text-muted;
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  FOOTER DE LA PÁGINA (barra roja fija al fondo)
+// ════════════════════════════════════════════════════════════
+.page-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background-color: $red-primary;
+  color: rgba(255, 255, 255, 0.80);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 100;
+
+  .footer-sep { opacity: 0.35; }
+}
+
+// ════════════════════════════════════════════════════════════
+//  RESPONSIVE
+// ════════════════════════════════════════════════════════════
+@media (max-width: 480px) {
+  .login-wrapper { padding: 16px 12px 68px; }
+
+  .header-system-name { font-size: 24px; letter-spacing: 3px; }
+  .header-fire-icon   { height: 64px; }
+
+  .login-card-content { padding: 14px 16px 4px !important; }
+
+  .page-footer {
+    flex-direction: column;
+    height: auto;
+    padding: 6px 12px;
+    gap: 2px;
+    .footer-sep  { display: none; }
+    .footer-text { font-size: 9px; letter-spacing: 0.8px; }
+  }
+}
+
+// ── Enlace de recuperar contraseña ────────────────────────────
+.forgot-password-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -4px;
+  margin-bottom: 16px;
+
+  .forgot-password-link {
+    color: $text-muted;
+    font-size: 12px;
+    text-decoration: none;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: $red-light;
+      text-decoration: underline;
+    }
+  }
+}
+
+// ── Estilos para el Modal (Dialog) de Recuperación ────────────
+::ng-deep .recovery-dialog {
+  .mdc-dialog__surface {
+    background-color: $card-bg !important;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+  }
+
+  .mat-mdc-dialog-title {
+    color: var(--text-bright) !important;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 16px;
+    font-size: 18px;
+    letter-spacing: 1px;
+  }
+
+  .dialog-text {
+    color: $text-muted;
+    font-size: 13px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .cancel-btn {
+    color: $text-muted !important;
+  }
+}

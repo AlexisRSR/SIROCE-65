@@ -1,0 +1,102 @@
+.reportes-wrapper {
+  padding: 24px;
+  color: var(--text-primary);
+
+  .page-header {
+    margin-bottom: 30px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+
+    .header-text h1 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 28px;
+      margin: 0 0 5px 0;
+      color: #f44336; // Rojo bomberos
+
+      mat-icon { font-size: 32px; height: 32px; width: 32px; }
+    }
+    .header-text p {
+      margin: 0;
+      color: var(--text-dim);
+    }
+  }
+
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 24px;
+  }
+
+  .report-card {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+
+    &:hover {
+      background-color: var(--tint-hover);
+      transform: translateY(-2px);
+    }
+
+    mat-card-title { font-weight: 700; }
+    mat-card-subtitle { color: var(--text-dim); }
+
+    .card-icon {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      border-radius: 50%;
+    }
+    .bg-red { background-color: #f44336; }
+    .bg-blue { background-color: #2196f3; }
+    .bg-green { background-color: #4caf50; }
+    .bg-orange { background-color: #ff9800; }
+
+    .desc {
+      color: var(--text-medium);
+      margin-top: 10px;
+      font-size: 14px;
+      min-height: 40px;
+    }
+
+    .full-width { width: 100%; }
+    .mt-3 { margin-top: 15px; }
+
+    .btn-excel {
+      color: var(--accent-success); // Verde Excel
+      margin-right: 8px;
+    }
+  }
+}
+
+/* 🔥 FIX: El texto del calendario sigue al tema activo */
+::ng-deep .mat-date-range-input-inner,
+::ng-deep .mat-date-range-input-inner:disabled,
+.mat-date-range-input input {
+  color: var(--text-bright) !important;
+  -webkit-text-fill-color: var(--text-bright) !important;
+}
+
+::ng-deep .mat-date-range-input-separator {
+  color: var(--text-dim) !important;
+}
+
+// El texto y la flecha del selector siguen al tema activo
+::ng-deep {
+  /* Color del texto seleccionado */
+  .mat-mdc-select-value-text,
+  .mat-select-value-text {
+    color: var(--text-primary) !important;
+  }
+
+  /* Color de la flechita del menú desplegable */
+  .mat-mdc-select-arrow,
+  .mat-select-arrow {
+    color: var(--text-dim) !important;
+  }
+}

@@ -1,0 +1,358 @@
+<div class="login-page">
+
+  <!-- ═══════════════════════════════════════════════════════
+       ENCABEZADO OSCURO (compartido con la Landing Page)
+       ═══════════════════════════════════════════════════════ -->
+  <app-public-header [showLoginButton]="false"></app-public-header>
+
+  <div class="login-wrapper">
+    <mat-card class="login-card">
+
+      <div class="login-card-header">
+        <div class="header-bg-circle" aria-hidden="true"></div>
+        <div class="header-bg-circle header-bg-circle--sm" aria-hidden="true"></div>
+
+        <img src="escudo.png" alt="Escudo 65 Cía" class="header-fire-icon">
+
+        <h1 class="header-system-name">SIROCE-65</h1>
+
+        <p class="header-subtitle">
+          Sistema de Registro Operativo y Control de Emergencias
+        </p>
+      </div>
+      <mat-card-content class="login-card-content">
+
+        <ng-container *ngIf="!isPasswordChangeMode">
+
+          <p class="form-section-label" aria-hidden="true">INICIO DE SESIÓN</p>
+
+          <mat-progress-bar
+            *ngIf="isLoading"
+            mode="indeterminate"
+            class="login-progress-bar"
+            aria-label="Verificando credenciales">
+          </mat-progress-bar>
+
+          <div
+            class="login-error-box"
+            [class.login-error-box--locked]="isAccountLocked"
+            *ngIf="errorMessage"
+            role="alert"
+            aria-live="assertive">
+            <mat-icon class="error-icon">{{ isAccountLocked ? 'gpp_bad' : 'error_outline' }}</mat-icon>
+            <span class="error-text">{{ errorMessage }}</span>
+          </div>
+          <form
+            [formGroup]="loginForm"
+            (ngSubmit)="onSubmit()"
+            novalidate
+            autocomplete="off"
+            aria-label="Formulario de inicio de sesión">
+
+            <mat-form-field
+              appearance="outline"
+              class="login-field"
+              floatLabel="always">
+
+              <mat-label>Usuario</mat-label>
+
+              <input
+                matInput
+                formControlName="nombre_usuario"
+                type="text"
+                placeholder="Ingresa tu nombre de usuario"
+                autocomplete="username"
+                [attr.aria-invalid]="f['nombre_usuario'].invalid && f['nombre_usuario'].touched"
+                aria-describedby="error-usuario">
+
+              <mat-icon matSuffix class="field-icon">person_outline</mat-icon>
+
+              <mat-error id="error-usuario">
+                <ng-container *ngIf="f['nombre_usuario'].hasError('required')">
+                  El usuario es obligatorio.
+                </ng-container>
+                <ng-container *ngIf="f['nombre_usuario'].hasError('minlength')">
+                  Mínimo 3 caracteres.
+                </ng-container>
+              </mat-error>
+
+            </mat-form-field>
+
+            <mat-form-field
+              appearance="outline"
+              class="login-field"
+              floatLabel="always">
+
+              <mat-label>Contraseña</mat-label>
+
+              <input
+                matInput
+                formControlName="password"
+                [type]="hidePassword ? 'password' : 'text'"
+                placeholder="Ingresa tu contraseña"
+                autocomplete="current-password"
+                [attr.aria-invalid]="f['password'].invalid && f['password'].touched"
+                aria-describedby="error-password">
+
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                class="password-toggle-btn"
+                (click)="hidePassword = !hidePassword"
+                [attr.aria-label]="hidePassword ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+                [attr.aria-pressed]="!hidePassword">
+                <mat-icon class="field-icon">
+                  {{ hidePassword ? 'visibility_off' : 'visibility' }}
+                </mat-icon>
+              </button>
+
+              <mat-error id="error-password">
+                <ng-container *ngIf="f['password'].hasError('required')">
+                  La contraseña es obligatoria.
+                </ng-container>
+                <ng-container *ngIf="f['password'].hasError('minlength')">
+                  Mínimo 4 caracteres.
+                </ng-container>
+              </mat-error>
+
+            </mat-form-field>
+
+            <div class="forgot-password-container">
+              <a href="javascript:void(0)" class="forgot-password-link" (click)="abrirModalRecuperacion()">
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
+
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              class="login-submit-btn"
+              [disabled]="loginForm.invalid || isLoading"
+              aria-label="Iniciar sesión en SIROCE-65">
+
+              <mat-icon *ngIf="!isLoading">login</mat-icon>
+              <mat-icon *ngIf="isLoading" class="spin-icon">sync</mat-icon>
+
+              <span>{{ isLoading ? 'Verificando...' : 'Iniciar Sesión' }}</span>
+            </button>
+
+          </form>
+
+        </ng-container>
+
+        <ng-container *ngIf="isPasswordChangeMode">
+
+          <p class="form-section-label" aria-hidden="true">CAMBIO DE CONTRASEÑA OBLIGATORIO</p>
+
+          <mat-progress-bar
+            *ngIf="isChangingPassword"
+            mode="indeterminate"
+            class="login-progress-bar"
+            aria-label="Actualizando contraseña">
+          </mat-progress-bar>
+
+          <div
+            class="login-error-box"
+            *ngIf="errorMessage"
+            role="alert"
+            aria-live="assertive">
+            <mat-icon class="error-icon">error_outline</mat-icon>
+            <span class="error-text">{{ errorMessage }}</span>
+          </div>
+
+          <form
+            (ngSubmit)="onSubmitNewPassword()"
+            novalidate
+            autocomplete="off"
+            aria-label="Formulario de cambio de contraseña obligatorio">
+
+            <mat-form-field
+              appearance="outline"
+              class="login-field"
+              floatLabel="always">
+
+              <mat-label>Nueva Contraseña</mat-label>
+
+              <input
+                matInput
+                name="newPassword"
+                [(ngModel)]="newPassword"
+                (ngModelChange)="onPasswordInput($event)"
+                [type]="hidePassword ? 'password' : 'text'"
+                placeholder="Ingresa tu nueva contraseña"
+                autocomplete="new-password">
+
+              <button
+                mat-icon-button
+                matSuffix
+                type="button"
+                class="password-toggle-btn"
+                (click)="hidePassword = !hidePassword"
+                [attr.aria-label]="hidePassword ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+                [attr.aria-pressed]="!hidePassword">
+                <mat-icon class="field-icon">
+                  {{ hidePassword ? 'visibility_off' : 'visibility' }}
+                </mat-icon>
+              </button>
+
+            </mat-form-field>
+
+            <div
+              class="password-requirements-box"
+              style="background-color: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 14px; margin: -6px 0 16px;">
+
+              <p style="margin: 0 0 10px; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase;">
+                Requisitos Obligatorios:
+              </p>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; row-gap: 8px; column-gap: 10px;">
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <mat-icon
+                    [style.color]="passwordRequirements.hasLength ? '#4caf50' : 'var(--text-faint)'"
+                    style="font-size: 16px; width: 16px; height: 16px; line-height: 16px;">
+                    {{ passwordRequirements.hasLength ? 'check_circle' : 'radio_button_unchecked' }}
+                  </mat-icon>
+                  <span style="font-size: 12px; color: var(--text-medium);">12 a 15 caracteres</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <mat-icon
+                    [style.color]="passwordRequirements.hasUpper ? '#4caf50' : 'var(--text-faint)'"
+                    style="font-size: 16px; width: 16px; height: 16px; line-height: 16px;">
+                    {{ passwordRequirements.hasUpper ? 'check_circle' : 'radio_button_unchecked' }}
+                  </mat-icon>
+                  <span style="font-size: 12px; color: var(--text-medium);">Una mayúscula</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <mat-icon
+                    [style.color]="passwordRequirements.hasLower ? '#4caf50' : 'var(--text-faint)'"
+                    style="font-size: 16px; width: 16px; height: 16px; line-height: 16px;">
+                    {{ passwordRequirements.hasLower ? 'check_circle' : 'radio_button_unchecked' }}
+                  </mat-icon>
+                  <span style="font-size: 12px; color: var(--text-medium);">Una minúscula</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <mat-icon
+                    [style.color]="passwordRequirements.hasNumber ? '#4caf50' : 'var(--text-faint)'"
+                    style="font-size: 16px; width: 16px; height: 16px; line-height: 16px;">
+                    {{ passwordRequirements.hasNumber ? 'check_circle' : 'radio_button_unchecked' }}
+                  </mat-icon>
+                  <span style="font-size: 12px; color: var(--text-medium);">Un número</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <mat-icon
+                    [style.color]="passwordRequirements.hasSpecial ? '#4caf50' : 'var(--text-faint)'"
+                    style="font-size: 16px; width: 16px; height: 16px; line-height: 16px;">
+                    {{ passwordRequirements.hasSpecial ? 'check_circle' : 'radio_button_unchecked' }}
+                  </mat-icon>
+                  <span style="font-size: 12px; color: var(--text-medium);">Signo especial (@, #, $)</span>
+                </div>
+
+              </div>
+            </div>
+
+            <mat-form-field
+              appearance="outline"
+              class="login-field"
+              floatLabel="always">
+
+              <mat-label>Confirmar Contraseña</mat-label>
+
+              <input
+                matInput
+                name="confirmPassword"
+                [(ngModel)]="confirmPassword"
+                [type]="hidePassword ? 'password' : 'text'"
+                placeholder="Confirma tu nueva contraseña"
+                autocomplete="new-password">
+
+              <mat-icon matSuffix class="field-icon">lock_outline</mat-icon>
+
+            </mat-form-field>
+
+            <button
+              mat-raised-button
+              color="primary"
+              type="submit"
+              class="login-submit-btn"
+              [disabled]="isChangingPassword || !isPasswordValid || !confirmPassword || newPassword !== confirmPassword"
+              aria-label="Actualizar contraseña">
+
+              <mat-icon *ngIf="!isChangingPassword">lock_reset</mat-icon>
+              <mat-icon *ngIf="isChangingPassword" class="spin-icon">sync</mat-icon>
+
+              <span>{{ isChangingPassword ? 'Actualizando...' : 'Actualizar Contraseña' }}</span>
+            </button>
+
+            <button
+              mat-button
+              type="button"
+              class="login-submit-btn"
+              [disabled]="isChangingPassword"
+              (click)="cancelPasswordChange()"
+              aria-label="Volver al inicio de sesión">
+              <span>Cancelar</span>
+            </button>
+
+          </form>
+
+        </ng-container>
+
+        </mat-card-content>
+      <div class="login-card-footer">
+        <mat-icon class="footer-lock-icon" aria-hidden="true">lock</mat-icon>
+        <span>Acceso restringido al personal autorizado de la estación</span>
+      </div>
+      </mat-card>
+  </div>
+  <footer class="page-footer" role="contentinfo">
+    <span class="footer-text">SISTEMA DE REGISTRO OPERATIVO Y CONTROL DE EMERGENCIAS</span>
+    <span class="footer-sep" aria-hidden="true">|</span>
+    <span class="footer-text">COMPAÑÍA DE BOMBEROS VOLUNTARIOS</span>
+  </footer>
+
+</div>
+
+<ng-template #recoveryDialog>
+  <div style="background-color: var(--bg-dialog-surface); color: var(--text-primary); padding: 20px;">
+
+    <h2 mat-dialog-title style="color: var(--text-bright); font-weight: 700; font-size: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px; margin-bottom: 16px; display: flex; align-items: center;">
+      <mat-icon style="margin-right: 8px; color: #c62828;">lock_reset</mat-icon>
+      Recuperar Contraseña
+    </h2>
+
+    <mat-dialog-content style="min-width: 350px; overflow-x: hidden;">
+      <p style="color: var(--text-medium); font-size: 13.5px; margin-bottom: 20px; line-height: 1.5;">
+        Ingresa tu nombre de usuario registrado. El sistema generará una contraseña temporal y la enviará al correo institucional de la estación.
+      </p>
+
+      <mat-form-field appearance="outline" class="dark-input" style="width: 100%;">
+        <mat-label>Nombre de Usuario</mat-label>
+        <input matInput [(ngModel)]="identificadorRecuperacion" (keyup.enter)="enviarRecuperacion()" autocomplete="off">
+        <mat-icon matSuffix style="color: var(--text-dim);">account_circle</mat-icon>
+      </mat-form-field>
+    </mat-dialog-content>
+
+    <mat-dialog-actions align="end" style="padding-top: 8px; border-top: 1px solid var(--border-color); margin-top: 10px;">
+      <button mat-button mat-dialog-close style="color: var(--text-medium);" [disabled]="isRecovering">Cancelar</button>
+
+      <button mat-flat-button (click)="enviarRecuperacion()"
+              [disabled]="!identificadorRecuperacion || isRecovering"
+              [style.backgroundColor]="(!identificadorRecuperacion || isRecovering) ? 'var(--bg-hover)' : '#c62828'"
+              [style.color]="(!identificadorRecuperacion || isRecovering) ? 'var(--text-faint)' : '#ffffff'"
+              style="min-width: 140px; height: 36px; padding: 0 16px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <mat-icon *ngIf="isRecovering" style="animation: spin 1s linear infinite; margin: 0; font-size: 20px; width: 20px; height: 20px;">sync</mat-icon>
+          <span style="font-weight: 500;">{{ isRecovering ? 'Enviando...' : 'Enviar Enlace' }}</span>
+        </div>
+      </button>
+    </mat-dialog-actions>
+
+  </div>
+</ng-template>

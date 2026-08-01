@@ -1,0 +1,444 @@
+// src/app/layout/main-layout/main-layout.component.scss
+// ══════════════════════════════════════════════════════════════
+//  SASE29 — Estilos del Layout Shell
+//  Tematizado con las CSS Custom Properties de styles.scss:
+//  el sidenav y el contenido cambian con el tema; el toolbar y
+//  el footer rojos conservan texto blanco en ambos temas.
+// ══════════════════════════════════════════════════════════════
+
+// ── Variables de diseño ───────────────────────────────────────
+$red-primary    : #c62828;                       // Rojo corporativo (constante)
+// Tinte neutro en tema claro, rojizo en oscuro (ver --tint-* en styles.scss)
+$red-hover      : var(--tint-hover);
+$red-active     : var(--tint-active);
+$sidenav-bg     : var(--bg-sidenav);
+$sidenav-width  : 244px;
+$toolbar-height : 64px;
+$footer-height  : 40px;
+$text-dim       : var(--text-dim);
+$text-medium    : var(--text-medium);
+$text-bright    : var(--text-bright);
+$text-on-red    : var(--text-on-red);            // Blanco sobre rojo, en ambos temas
+$divider-color  : var(--border-color);
+$content-bg     : var(--bg-content);
+
+// ════════════════════════════════════════════════════════════
+//  CONTENEDOR RAÍZ
+// ════════════════════════════════════════════════════════════
+.shell-container {
+  height: 100vh;
+  width: 100vw; // 🔥 NUEVO: Forzamos a ocupar todo el ancho de la ventana
+  display: flex;
+  background-color: $content-bg;
+}
+
+// ════════════════════════════════════════════════════════════
+//  SIDENAV
+// ════════════════════════════════════════════════════════════
+.app-sidenav {
+  width: $sidenav-width;
+  background-color: $sidenav-bg !important;
+  border-right: 1px solid $divider-color !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ── Cabecera del sidenav ──────────────────────────────────────
+.sidenav-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: $toolbar-height;
+  background: transparent;
+  border-bottom: 1px solid rgba(198, 40, 40, 0.30);
+  flex-shrink: 0;
+
+  .sidenav-brand-icon {
+    height: 28px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  .sidenav-brand-text {
+    color: $text-bright;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    user-select: none;
+  }
+}
+
+.sidenav-divider {
+  border-color: $divider-color !important;
+  flex-shrink: 0;
+}
+
+// ── Navegación principal ──────────────────────────────────────
+.nav-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); }
+}
+
+.nav-group-header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 48px;
+  padding: 0 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: $text-dim;
+  gap: 12px;
+  transition: background 0.15s ease, color 0.15s ease;
+
+  &:hover {
+    background-color: $red-hover;
+    color: $text-medium;
+    .nav-group-icon { color: $text-medium; }
+  }
+
+  &.is-expanded {
+    color: $text-medium;
+    .nav-group-icon { color: $red-primary; }
+  }
+
+  .nav-group-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: $text-dim;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+
+  .nav-group-label {
+    flex: 1;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-chevron {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    opacity: 0.6;
+    transition: transform 0.2s ease;
+  }
+}
+
+.nav-children {
+  overflow: hidden;
+  animation: slideDown 0.18s ease-out both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.nav-child-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 44px;
+  padding: 0 16px 0 38px;
+  color: $text-dim;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+  border-left: 3px solid transparent;
+
+  &:hover {
+    background-color: $red-hover;
+    color: $text-medium;
+    .nav-child-icon { color: $text-medium; }
+  }
+
+  &.nav-child-active {
+    background-color: $red-active;
+    border-left-color: $red-primary;
+    color: $text-bright;
+    .nav-child-icon { color: $red-primary; }
+    .nav-child-label { font-weight: 600; }
+  }
+
+  .nav-child-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: $text-dim;
+    transition: color 0.12s;
+  }
+
+  .nav-child-label {
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.sidenav-spacer { flex: 1; }
+
+.nav-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  height: 52px;
+  padding: 0 20px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--accent-danger-soft);
+  transition: background 0.15s;
+
+  &:hover {
+    background-color: $red-active;
+  }
+
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+  span { font-size: 13px; font-weight: 500; }
+}
+
+// ════════════════════════════════════════════════════════════
+//  CONTENIDO PRINCIPAL
+// ════════════════════════════════════════════════════════════
+.main-content {
+  display: flex;
+  flex-direction: column;
+  background-color: $content-bg;
+  min-height: 100vh;
+  width: 100%; // 🔥 NUEVO: Fuerza a ocupar todo el espacio horizontal
+  overflow-x: hidden; // Previene scroll horizontal indeseado
+}
+
+// ── Toolbar superior (roja en ambos temas → texto blanco fijo) ─
+.app-toolbar {
+  background-color: $red-primary !important;
+  color: $text-on-red !important;
+  height: $toolbar-height !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 900;
+  box-shadow: 0 2px 12px var(--shadow-color) !important;
+  flex-shrink: 0;
+  width: 100%; // 🔥 NUEVO
+
+  .toolbar-menu-btn {
+    color: $text-on-red;
+    margin-right: 4px;
+  }
+
+  .app-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    color: $text-on-red;
+
+    .brand-fire-icon {
+      height: 28px;
+      width: auto;
+      object-fit: contain;
+    }
+
+    .brand-text {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      user-select: none;
+    }
+  }
+
+  .toolbar-spacer { flex: 1 1 auto; }
+
+  .toolbar-action-btn {
+    color: $text-on-red;
+    font-size: 13px;
+    gap: 4px;
+    letter-spacing: 0.3px;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+
+  // Botón de cambio de tema (sol / luna)
+  .toolbar-theme-btn {
+    color: $text-on-red;
+
+    mat-icon { transition: transform 0.3s ease; }
+
+    &:hover mat-icon { transform: rotate(20deg); }
+  }
+
+  .toolbar-user-btn {
+    .chevron-down {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      opacity: 0.75;
+    }
+  }
+
+  .toolbar-logout-btn {
+    color: $text-on-red !important;
+    border-color: rgba(255, 255, 255, 0.45) !important;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+    height: 34px;
+    transition: background 0.15s, border-color 0.15s;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.20) !important;
+      border-color: rgba(255, 255, 255, 0.70) !important;
+    }
+  }
+}
+
+::ng-deep .user-dropdown-panel {
+  background-color: var(--bg-elevated) !important;
+  border: 1px solid $divider-color;
+
+  .user-info-panel {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    opacity: 1 !important;
+    cursor: default !important;
+
+    .user-info-text {
+      display: flex;
+      flex-direction: column;
+      .user-info-name { font-size: 14px; font-weight: 600; color: $text-bright; }
+      .user-info-role { font-size: 12px; color: $text-dim; }
+    }
+  }
+}
+
+// ── Zona de vistas (router-outlet) ────────────────────────────
+.router-wrapper {
+  flex: 1;
+  padding: 24px;
+  overflow-y: auto;
+  min-height: calc(100vh - #{$toolbar-height} - #{$footer-height});
+  width: 100%; // 🔥 NUEVO: Obliga a las pantallas a usar el 100%
+  box-sizing: border-box; // 🔥 NUEVO: Evita que el padding rompa el 100%
+}
+
+// ── Footer (rojo en ambos temas → texto blanco fijo) ──────────
+.app-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: $footer-height;
+  background-color: $red-primary;
+  color: rgba(255, 255, 255, 0.80);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  flex-shrink: 0;
+  width: 100%; // 🔥 NUEVO
+
+  .footer-separator { opacity: 0.40; }
+}
+
+// ════════════════════════════════════════════════════════════
+//  RESPONSIVE — Mobile (< 768px)
+// ════════════════════════════════════════════════════════════
+@media (max-width: 768px) {
+  .toolbar-btn-text { display: none; }
+  .toolbar-logout-btn { display: none; }
+
+  .brand-text { font-size: 17px !important; letter-spacing: 2px !important; }
+
+  .router-wrapper { padding: 16px; }
+
+  .app-footer {
+    flex-direction: column;
+    height: auto;
+    padding: 8px 12px;
+    gap: 2px;
+    .footer-separator { display: none; }
+    .footer-line { font-size: 9px; }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODAL - CAMBIO DE CONTRASEÑA (sigue al tema activo)
+   ══════════════════════════════════════════════════════════ */
+::ng-deep .dark-password-dialog {
+  .mdc-dialog__surface {
+    background-color: var(--bg-dialog-surface) !important;
+    border: 1px solid var(--border-color);
+    border-radius: 8px !important;
+  }
+
+  ::ng-deep .user-dropdown-panel {
+    background-color: var(--bg-elevated) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+
+    .mat-mdc-menu-item, .mat-menu-item {
+      color: var(--text-primary) !important;
+      transition: background-color 0.2s ease;
+
+      mat-icon { color: var(--text-medium) !important; }
+
+      &:hover, &:focus { background-color: var(--bg-hover) !important; }
+
+      &[disabled] {
+        opacity: 1 !important;
+        .user-info-text {
+          .user-info-name { color: var(--text-bright) !important; font-weight: 600; }
+          .user-info-role { color: $red-primary !important; font-weight: 700; }
+        }
+      }
+    }
+
+    mat-divider, .mat-divider {
+      border-top-color: var(--border-color) !important;
+    }
+  }
+
+  .dark-input {
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing {
+      border-color: var(--border-strong) !important;
+    }
+
+    &.mat-focused .mdc-notched-outline__leading,
+    &.mat-focused .mdc-notched-outline__notch,
+    &.mat-focused .mdc-notched-outline__trailing {
+      border-color: $red-primary !important;
+      border-width: 2px !important;
+    }
+
+    .mat-mdc-floating-label { color: var(--text-dim) !important; }
+    &.mat-focused .mat-mdc-floating-label { color: $red-primary !important; }
+    .mat-mdc-input-element { color: var(--text-primary) !important; }
+  }
+}

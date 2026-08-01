@@ -1,0 +1,417 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+/* Importamos el tema rojo de Material */
+@import '@angular/material/prebuilt-themes/rose-red.css';
+
+/* ══════════════════════════════════════════════════════════════
+   SISTEMA DE TEMAS SIROCE-65 (CSS Custom Properties)
+   ──────────────────────────────────────────────────────────────
+   • Tema OSCURO  → por defecto, definido en :root
+   • Tema CLARO   → se activa con <html data-theme="light">
+   • El rojo corporativo (#b71c1c / #c62828) es idéntico en
+     ambos temas: la identidad de la estación no cambia.
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  color-scheme: dark;
+
+  /* ── Marca (constante en ambos temas) ── */
+  --red-dark   : #b71c1c;
+  --red-primary: #c62828;
+
+  /* ── Fondos / superficies ── */
+  --bg-page          : #121212;                  /* Login fullscreen          */
+  --bg-app           : #212121;                  /* Fondo general (body)      */
+  --bg-content       : #1e1e1e;                  /* Zona de contenido central */
+  --bg-sidenav       : #141414;                  /* Menú lateral              */
+  --bg-card          : #2c2c2c;                  /* Tarjetas y tablas         */
+  --bg-card-header   : #252525;                  /* Encabezados de tabla      */
+  --bg-elevated      : #242424;                  /* Menús, paginador, paneles */
+  --bg-dialog        : #212121;                  /* Cuerpo de modales         */
+  --bg-dialog-surface: #1e1e1e;                  /* Superficie mdc-dialog     */
+  --bg-actions-bar   : #1a1a1a;                  /* Pie de acciones de modal  */
+  --bg-input         : #2c2c2c;                  /* Campos de formulario      */
+  --bg-autofill      : #222222;                  /* Autocompletado navegador  */
+  --bg-hover         : rgba(255, 255, 255, 0.08);
+  --bg-inset         : rgba(0, 0, 0, 0.20);      /* Cajas hundidas            */
+  --bg-chip          : rgba(255, 255, 255, 0.07);
+  --bg-badge-neutral : rgba(255, 255, 255, 0.06);
+
+  /* ── Tintes de interacción (hover / activo / seleccionado) ──
+     En oscuro conservan el matiz rojo de marca (look original);
+     en claro se vuelven gris neutro para evitar el efecto rosado
+     sobre fondos blancos. Úsense SIEMPRE para fondos de hover o
+     selección — el rojo sólido queda reservado a texto, íconos
+     y bordes indicadores. */
+  --tint-row-hover   : rgba(198, 40, 40, 0.06);  /* Filas de tabla (sutil)    */
+  --tint-hover       : rgba(198, 40, 40, 0.12);  /* Ítems de menú/lista       */
+  --tint-active      : rgba(198, 40, 40, 0.22);  /* Ítem activo/seleccionado  */
+
+  /* ── Texto ── */
+  --text-bright : #ffffff;
+  --text-primary: #e0e0e0;
+  --text-medium : rgba(255, 255, 255, 0.80);
+  --text-dim    : rgba(255, 255, 255, 0.55);
+  --text-faint  : rgba(255, 255, 255, 0.32);
+  --text-ghost  : rgba(255, 255, 255, 0.12);
+  --text-on-red : #ffffff;                       /* Sobre rojo (constante)    */
+
+  /* ── Bordes y divisores ── */
+  --border-color   : rgba(255, 255, 255, 0.08);
+  --border-strong  : rgba(255, 255, 255, 0.18);
+  --border-input   : rgba(255, 255, 255, 0.35);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+
+  /* ── Sombras ── */
+  --shadow-color: rgba(0, 0, 0, 0.50);
+  --shadow-card : rgba(0, 0, 0, 0.70);
+  --shadow-kpi  : rgba(0, 0, 0, 0.30);  /* Elevación neutra de tarjetas KPI */
+
+  /* ── Acentos semánticos (tonos claros para fondo oscuro) ── */
+  --accent-danger      : #ef5350;
+  --accent-danger-soft : #ef9a9a;
+  --accent-warn        : #ffa726;
+  --accent-warn-soft   : #ffcc80;
+  --accent-success     : #66bb6a;
+  --accent-success-soft: #a5d6a7;
+  --accent-info        : #64b5f6;
+  --accent-info-soft   : #90caf9;
+  --accent-cyan        : #4fc3f7;
+  --accent-cyan-soft   : #80deea;
+  --accent-purple      : #ba68c8;
+  --accent-purple-soft : #ce93d8;
+  --accent-deep-purple : #b39ddb;
+  --accent-teal        : #4db6ac;
+  --accent-teal-soft   : #80cbc4;
+  --accent-orange      : #ff8a65;
+  --accent-orange-soft : #ffab91;
+  --accent-yellow      : #ffee00;
+  --accent-yellow-soft : #fff59d;
+  --accent-gray        : #bdbdbd;
+  --accent-green-bright: #69f0ae;
+  --accent-red-bright  : #ff5252;
+
+  /* ── Misceláneos ── */
+  --calendar-icon-filter: invert(1) opacity(0.5); /* Ícono nativo de fecha */
+  --sort-arrow-color: var(--accent-danger);       /* Flecha de mat-sort-header */
+}
+
+/* ──────────────────────────────────────────────────────────────
+   TEMA CLARO — colores invertidos, rojo corporativo intacto
+   ────────────────────────────────────────────────────────────── */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-page          : #eceff1;
+  --bg-app           : #f4f5f7;
+  --bg-content       : #f4f5f7;
+  --bg-sidenav       : #ffffff;
+  --bg-card          : #ffffff;
+  --bg-card-header   : #f0f2f4;
+  --bg-elevated      : #ffffff;
+  --bg-dialog        : #ffffff;
+  --bg-dialog-surface: #ffffff;
+  --bg-actions-bar   : #f5f6f8;
+  --bg-input         : #f7f8fa;
+  --bg-autofill      : #f7f8fa;
+  --bg-hover         : rgba(0, 0, 0, 0.05);
+  --bg-inset         : rgba(0, 0, 0, 0.04);
+  --bg-chip          : rgba(0, 0, 0, 0.06);
+  --bg-badge-neutral : rgba(0, 0, 0, 0.05);
+
+  /* Gris neutro — SIN tinte rojo. Evita el efecto "rosado" que
+     dejaba el rojo corporativo con opacidad sobre fondo blanco.
+     El rojo de marca se conserva solo en texto/íconos/bordes. */
+  --tint-row-hover   : rgba(0, 0, 0, 0.04);
+  --tint-hover       : rgba(0, 0, 0, 0.05);
+  --tint-active      : rgba(0, 0, 0, 0.08);
+
+  /* Texto secundario oscurecido para cumplir contraste WCAG AA
+     (mínimo 4.5:1) sobre fondos blancos/gris muy claro. */
+  --text-bright : #1a1c1e;
+  --text-primary: #303236;
+  --text-medium : rgba(0, 0, 0, 0.82);
+  --text-dim    : rgba(0, 0, 0, 0.68);   /* ≈ #525252 — contraste ~8.9:1 */
+  --text-faint  : rgba(0, 0, 0, 0.58);   /* ≈ #6b6b6b — contraste ~5.3:1 */
+  --text-ghost  : rgba(0, 0, 0, 0.16);
+
+  --border-color   : rgba(0, 0, 0, 0.10);
+  --border-strong  : rgba(0, 0, 0, 0.22);
+  --border-input   : rgba(0, 0, 0, 0.38);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.22);
+
+  --shadow-color: rgba(0, 0, 0, 0.16);
+  --shadow-card : rgba(0, 0, 0, 0.18);
+  --shadow-kpi  : rgba(0, 0, 0, 0.06);  /* Elevación neutra de tarjetas KPI */
+
+  /* Acentos oscurecidos para mantener contraste AA sobre blanco */
+  --accent-danger      : #d32f2f;
+  --accent-danger-soft : #c62828;
+  --accent-warn        : #ef6c00;
+  --accent-warn-soft   : #e65100;
+  --accent-success     : #2e7d32;
+  --accent-success-soft: #2e7d32;
+  --accent-info        : #1976d2;
+  --accent-info-soft   : #1565c0;
+  --accent-cyan        : #0277bd;
+  --accent-cyan-soft   : #006670;   /* Oscurecido: #00838f daba ~4.5:1, al límite de AA */
+  --accent-purple      : #8e24aa;
+  --accent-purple-soft : #7b1fa2;
+  --accent-deep-purple : #5e35b1;
+  --accent-teal        : #00897b;
+  --accent-teal-soft   : #00695c;
+  --accent-orange      : #e64a19;
+  --accent-orange-soft : #a8330f;   /* Oscurecido: #d84315 daba ~4.4:1, no pasaba AA */
+  --accent-yellow      : #f9a825;
+  --accent-yellow-soft : #f57f17;
+  --accent-gray        : #757575;
+  --accent-green-bright: #00c853;
+  --accent-red-bright  : #d50000;
+
+  --calendar-icon-filter: none;
+  --sort-arrow-color: var(--text-dim);            /* Flecha de mat-sort-header */
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  /* Fondo controlado por el sistema de temas SIROCE-65 */
+  background-color: var(--bg-app);
+  color: var(--text-primary);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* Ajuste rápido para el menú lateral */
+mat-sidenav-container {
+  background-color: transparent !important;
+}
+
+/* Forzar que las capas principales ocupen toda la pantalla */
+app-root, app-main-layout, mat-sidenav-container {
+  display: block;
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0;
+  padding: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MENÚ DESPLEGABLE DE USUARIO (SIROCE-65 Global Overlay)
+   ══════════════════════════════════════════════════════════ */
+.user-dropdown-panel {
+  background-color: var(--bg-elevated) !important;
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+
+  .mat-mdc-menu-item, .mat-menu-item {
+    background-color: transparent !important;
+
+    /* Texto e íconos internos siguen al tema activo */
+    color: var(--text-primary) !important;
+    span, .mdc-list-item__primary-text {
+      color: var(--text-primary) !important;
+    }
+
+    mat-icon {
+      color: var(--text-medium) !important;
+    }
+
+    /* Efecto hover */
+    &:hover, &:focus {
+      background-color: var(--bg-hover) !important;
+    }
+
+    /* El bloque superior donde sale el nombre (disabled) */
+    &[disabled] {
+      opacity: 1 !important;
+
+      .user-info-text {
+        .user-info-name { color: var(--text-bright) !important; font-weight: 600; }
+        .user-info-role { color: var(--red-primary) !important; font-weight: 700; }
+      }
+    }
+  }
+
+  /* La línea separadora */
+  mat-divider, .mat-divider {
+    border-top-color: var(--border-color) !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   CORRECCIÓN GLOBAL DE INPUTS Y AUTOCOMPLETADO
+   (Aplica para Cambio de Contraseña, Login y todo el sistema)
+   ══════════════════════════════════════════════════════════ */
+
+/* El texto de cualquier input de Angular Material sigue al tema */
+.mdc-text-field__input,
+.mat-mdc-input-element,
+.dark-input input {
+  color: var(--text-bright) !important;
+  -webkit-text-fill-color: var(--text-bright) !important;
+  caret-color: var(--red-primary);
+}
+
+/* Evitar que el navegador pinte el fondo al autocompletar en TODO el sistema */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-text-fill-color: var(--text-bright) !important;
+    /* Neutro que combina con el login y los modales en ambos temas */
+    -webkit-box-shadow: 0 0 0px 1000px var(--bg-autofill) inset !important;
+    transition: background-color 5000s ease-in-out 0s !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MODALES GLOBALES (Recuperación y Cambio de Clave)
+   ══════════════════════════════════════════════════════════ */
+::ng-deep .recovery-dialog .mdc-dialog__surface,
+::ng-deep .dark-password-dialog .mdc-dialog__surface {
+  background-color: var(--bg-dialog-surface) !important;
+  border: 1px solid var(--border-color);
+  border-radius: 8px !important;
+}
+
+/* Superficie por defecto de cualquier diálogo */
+.mat-mdc-dialog-container .mdc-dialog__surface {
+  background-color: var(--bg-dialog) !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PAGINADOR (Angular Material) — sigue al tema activo
+   ══════════════════════════════════════════════════════════ */
+.mat-mdc-paginator {
+  background-color: var(--bg-elevated) !important;
+  color: var(--text-medium) !important;
+  border-top: 1px solid var(--border-color);
+}
+
+.mat-mdc-paginator-icon {
+  fill: var(--text-medium) !important;
+}
+
+.mat-mdc-select-value-text {
+  color: var(--text-medium) !important;
+}
+
+.mat-mdc-select-arrow {
+  color: var(--text-dim) !important;
+}
+
+/* Estado deshabilitado de las flechas (cuando estás en la pág 1) */
+.mat-mdc-icon-button[disabled] .mat-mdc-paginator-icon {
+  fill: var(--text-ghost) !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   OVERLAYS DE MATERIAL (selects, autocompletes, menús)
+   Los paneles flotantes se montan fuera de los componentes,
+   por eso se tematizan aquí de forma global.
+   ══════════════════════════════════════════════════════════ */
+div.mat-mdc-select-panel,
+div.mat-mdc-autocomplete-panel {
+  background-color: var(--bg-elevated) !important;
+  border: 1px solid var(--border-color);
+}
+
+.mat-mdc-option {
+  .mdc-list-item__primary-text { color: var(--text-primary) !important; }
+
+  &:hover:not(.mdc-list-item--disabled),
+  &.mat-mdc-option-active {
+    background-color: var(--bg-hover) !important;
+  }
+
+  /* Opción seleccionada → rojo corporativo */
+  &.mdc-list-item--selected:not(.mdc-list-item--disabled) {
+    .mdc-list-item__primary-text { color: var(--red-primary) !important; }
+    .mat-pseudo-checkbox { color: var(--red-primary); }
+  }
+}
+
+.mat-mdc-menu-panel {
+  background-color: var(--bg-elevated) !important;
+  .mat-mdc-menu-item {
+    color: var(--text-primary) !important;
+    .mat-icon { color: var(--text-medium); }
+    &:hover:not([disabled]) { background-color: var(--bg-hover) !important; }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   DATEPICKER (calendario flotante)
+   ══════════════════════════════════════════════════════════ */
+.mat-datepicker-content {
+  background-color: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+
+  .mat-calendar-body-cell-content { color: var(--text-primary); }
+  .mat-calendar-body-label,
+  .mat-calendar-table-header th   { color: var(--text-dim); }
+  .mat-calendar-arrow             { fill: var(--text-medium); }
+  .mat-calendar-period-button,
+  .mat-calendar-previous-button,
+  .mat-calendar-next-button       { color: var(--text-medium); }
+
+  .mat-calendar-body-selected {
+    background-color: var(--red-primary);
+    color: var(--text-on-red);
+  }
+  .mat-calendar-body-in-range::before { background: rgba(198, 40, 40, 0.15); }
+  .mat-calendar-body-today:not(.mat-calendar-body-selected):not(.mat-calendar-body-comparison-identical) {
+    border-color: var(--text-dim);
+  }
+  .mat-calendar-body-disabled > .mat-calendar-body-cell-content:not(.mat-calendar-body-selected) {
+    color: var(--text-ghost);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   FORM FIELDS — valores por defecto tematizados
+   (Los componentes pueden sobreescribirlos localmente)
+   ══════════════════════════════════════════════════════════ */
+.mat-mdc-form-field {
+  .mat-mdc-floating-label,
+  .mat-mdc-select-placeholder { color: var(--text-dim); }
+
+  &.mat-focused .mat-mdc-floating-label { color: var(--red-primary); }
+
+  .mat-mdc-input-element::placeholder { color: var(--text-faint); }
+}
+
+/* Tarjetas Material por defecto */
+.mat-mdc-card {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+}
+
+/* ══════════════════════════════════════════════════════════
+   FLECHAS DE ORDENAMIENTO (mat-sort-header)
+   El ícono es un <svg fill="currentColor"> dentro de
+   .mat-sort-header-arrow, con ViewEncapsulation.None — un
+   selector global (sin ::ng-deep) es suficiente y correcto.
+   ══════════════════════════════════════════════════════════ */
+.mat-sort-header-arrow {
+  color: var(--sort-arrow-color) !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   APEXCHARTS — textos legibles en tema claro
+   (Los gráficos definen colores oscuros inline desde TS;
+    aquí se corrigen solo cuando el tema claro está activo)
+   ══════════════════════════════════════════════════════════ */
+[data-theme='light'] {
+  .apexcharts-text,
+  .apexcharts-datalabel-label,
+  .apexcharts-yaxis-title text { fill: rgba(0, 0, 0, 0.70) !important; }
+
+  .apexcharts-title-text  { fill: #1a1c1e !important; }
+  .apexcharts-legend-text { color: rgba(0, 0, 0, 0.76) !important; }
+  .apexcharts-gridline    { stroke: rgba(0, 0, 0, 0.08); }
+}

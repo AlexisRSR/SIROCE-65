@@ -1,0 +1,183 @@
+// src/app/features/insumos/insumos-list/insumos-list.component.scss
+// ══════════════════════════════════════════════════════════════
+//  ✅ @use "sass:color" en PRIMERA línea — color.adjust() en lugar de darken()
+// ══════════════════════════════════════════════════════════════
+@use "sass:color";
+
+// Rojo literal (para color.adjust); el resto sigue al tema activo
+$red-dark      : #b71c1c;
+$card-bg       : var(--bg-card);
+$header-bg     : var(--bg-card-header);
+$border        : var(--border-color);
+// Tinte neutro en tema claro, rojizo en oscuro (ver --tint-* en styles.scss)
+$row-hover     : var(--tint-row-hover);
+$text-primary  : var(--text-primary);
+$text-dim      : var(--text-dim);
+
+// ── Contenedor ────────────────────────────────────────────────
+.il-container { display: flex; flex-direction: column; gap: 20px; }
+
+// ── Toolbar ───────────────────────────────────────────────────
+.page-toolbar {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; flex-wrap: wrap; gap: 16px;
+}
+.page-title-area {
+  display: flex; align-items: center; gap: 14px;
+  .page-title-icon { font-size: 36px; width: 36px; height: 36px; color: $red-dark; }
+  .page-title      { margin: 0; font-size: 22px; font-weight: 600; color: $text-primary; line-height: 1.2; }
+  .page-subtitle   { margin: 3px 0 0; font-size: 12px; color: $text-dim; }
+}
+.toolbar-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.search-field {
+  width: 260px;
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper { background-color: $card-bg !important; }
+    .mdc-notched-outline__leading, .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing { border-color: $border !important; }
+  }
+}
+.search-icon { color: $text-dim; font-size: 18px; width: 18px; height: 18px; margin-right: 6px; }
+.btn-nuevo {
+  height: 48px; padding: 0 20px; font-weight: 700; gap: 6px; white-space: nowrap;
+  &:hover { box-shadow: 0 4px 16px var(--shadow-color) !important; }
+}
+
+// ── Estadísticas ──────────────────────────────────────────────
+.stats-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.stat-chip {
+  display: flex; align-items: center; gap: 12px;
+  background-color: $card-bg; border: 1px solid $border;
+  border-radius: 8px; padding: 12px 18px; min-width: 120px; flex: 1; max-width: 180px;
+
+  .stat-icon-wrap {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    mat-icon { font-size: 22px; width: 22px; height: 22px; }
+  }
+  .stat-data  { display: flex; flex-direction: column; line-height: 1.2; }
+  .stat-value { font-size: 22px; font-weight: 700; color: $text-primary; }
+  .stat-label { font-size: 11px; color: $text-dim; text-transform: uppercase; letter-spacing: 0.8px; }
+
+  &.stat-total      .stat-icon-wrap { background: rgba(100,181,246,0.12); mat-icon { color: var(--accent-info); } }
+  &.stat-herramienta .stat-icon-wrap { background: rgba(255,167, 38,0.12); mat-icon { color: var(--accent-warn); } }
+  &.stat-medico     .stat-icon-wrap { background: rgba(102,187,106,0.12); mat-icon { color: var(--accent-success); } }
+  &.stat-rescate    .stat-icon-wrap { background: rgba(239, 83, 80,0.12); mat-icon { color: var(--accent-danger); } }
+  &.stat-bajo       .stat-icon-wrap { background: rgba(255,238,  0,0.12); mat-icon { color: var(--accent-yellow); } }
+}
+
+// ── Tabla ─────────────────────────────────────────────────────
+.table-card {
+  background-color: $card-bg !important; border: 1px solid $border !important;
+  border-radius: 8px !important; padding: 0 !important; overflow: hidden;
+  .loading-bar { border-radius: 0; }
+}
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 24px; text-align: center;
+  .empty-icon  { font-size: 60px; width: 60px; height: 60px; color: var(--text-ghost); margin-bottom: 16px; }
+  .empty-title { margin: 0 0 6px; font-size: 18px; font-weight: 500; color: $text-dim; }
+  .empty-sub   { margin: 0 0 20px; font-size: 13px; color: var(--text-faint); }
+}
+.table-wrapper { overflow-x: auto; &.hidden { display: none; } }
+
+.insumos-table {
+  width: 100%; background-color: $card-bg !important;
+
+  .mat-mdc-header-row {
+    background-color: $header-bg !important;
+    .mat-mdc-header-cell {
+      color: var(--text-dim) !important; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      border-bottom: 1px solid $border !important;
+    }
+  }
+  .data-row {
+    transition: background-color 0.12s ease;
+    &:hover { background-color: $row-hover !important; }
+    .mat-mdc-cell { border-bottom: 1px solid $border !important; color: $text-primary; }
+  }
+  .col-num      { width: 48px; max-width: 48px; }
+  .col-stock    { width: 100px; }
+  .col-acciones { width: 96px; text-align: right; }
+}
+
+// ── Celda nombre ──────────────────────────────────────────────
+.nombre-cell { display: flex; align-items: center; gap: 12px; padding: 8px 0; }
+.insumo-icon {
+  width: 38px; height: 38px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+
+  // ✅ color.adjust() en lugar de darken() (bordes); íconos tematizados
+  &.icon-badge-herramienta {
+    background: rgba(255, 167, 38, 0.15);
+    border: 1px solid color.adjust(#ffa726, $lightness: -20%, $alpha: -0.6);
+    mat-icon { color: var(--accent-warn); }
+  }
+  &.icon-badge-medico {
+    background: rgba(102, 187, 106, 0.15);
+    border: 1px solid color.adjust(#66bb6a, $lightness: -20%, $alpha: -0.6);
+    mat-icon { color: var(--accent-success); }
+  }
+  &.icon-badge-rescate {
+    background: rgba(239, 83, 80, 0.15);
+    border: 1px solid color.adjust(#ef5350, $lightness: -10%, $alpha: -0.6);
+    mat-icon { color: var(--accent-danger); }
+  }
+  &.icon-badge-default { background: var(--bg-badge-neutral); mat-icon { color: $text-dim; } }
+}
+.insumo-info {
+  .insumo-nombre { margin: 0; font-size: 14px; font-weight: 600; color: $text-primary; }
+  .insumo-desc   { margin: 2px 0 0; font-size: 11px; color: $text-dim;
+                   max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+// ── Celda stock ───────────────────────────────────────────────
+.stock-cell { display: flex; align-items: center; gap: 4px; }
+.stock-value { font-size: 15px; font-weight: 700; }
+.stock-ok    { color: var(--accent-success); }
+.stock-medio { color: var(--accent-warn); }
+.stock-bajo  { color: var(--accent-danger); }
+.stock-cero  { color: rgba(239, 83, 80, 0.60); text-decoration: line-through; }
+.stock-warn-icon { font-size: 16px; width: 16px; height: 16px; color: var(--accent-warn); }
+
+// ── Fila sin resultados ───────────────────────────────────────
+.no-data-row .mat-cell { border: none !important; }
+.no-data-msg { display: flex; align-items: center; justify-content: center;
+               gap: 8px; padding: 32px 16px; color: $text-dim; font-size: 14px;
+               mat-icon { font-size: 20px; width: 20px; height: 20px; } }
+
+// ── Badges ────────────────────────────────────────────────────
+.badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.badge-herramienta { background: rgba(255,167, 38,0.15); color: var(--accent-warn-soft); border: 1px solid rgba(255,167, 38,0.35); }
+.badge-medico      { background: rgba(102,187,106,0.15); color: var(--accent-success-soft); border: 1px solid rgba(102,187,106,0.35); }
+.badge-rescate     { background: rgba(239, 83, 80,0.15); color: var(--accent-danger-soft); border: 1px solid rgba(239, 83, 80,0.35); }
+.badge-activo      { background: rgba(102,187,106,0.15); color: var(--accent-success-soft); border: 1px solid rgba(102,187,106,0.35); }
+.badge-bajo        { background: rgba(255,238,  0,0.15); color: var(--accent-yellow-soft); border: 1px solid rgba(255,238,  0,0.35); }
+.badge-reparacion  { background: rgba(255,167, 38,0.15); color: var(--accent-warn-soft); border: 1px solid rgba(255,167, 38,0.35); }
+.badge-prestado    { background: rgba(100,181,246,0.15); color: var(--accent-info-soft); border: 1px solid rgba(100,181,246,0.30); }
+.badge-inactivo    { background: rgba(189,189,189,0.12); color: var(--accent-gray); border: 1px solid rgba(189,189,189,0.25); }
+.badge-default     { background: var(--bg-badge-neutral); color: $text-dim; border: 1px solid $border; }
+
+// ── Botones de acción ─────────────────────────────────────────
+.btn-editar  { color: var(--accent-info) !important; &:hover { background-color: rgba(100,181,246,0.10) !important; } }
+.btn-eliminar { color: var(--accent-danger-soft) !important; &:hover { background-color: rgba(239,83,80,0.10) !important; }
+                &[disabled] { opacity: 0.35 !important; } }
+
+::ng-deep .snack-danger {
+  .mdc-snackbar__surface { background-color: $red-dark !important; }
+  .mdc-snackbar__label, .mat-mdc-snack-bar-action { color: #fff !important; }
+}
+
+// ── Responsive ────────────────────────────────────────────────
+@media (max-width: 768px) {
+  .page-toolbar { flex-direction: column; align-items: stretch; }
+  .toolbar-actions { flex-direction: column; }
+  .search-field { width: 100%; }
+  .btn-label { display: none; }
+  .stat-chip { max-width: 100%; }
+}

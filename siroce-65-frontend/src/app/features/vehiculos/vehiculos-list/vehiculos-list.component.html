@@ -1,0 +1,173 @@
+<div class="vl-container page-enter">
+
+  <header class="page-toolbar">
+    <div class="page-title-area">
+      <mat-icon class="page-title-icon">directions_car</mat-icon>
+      <div>
+        <h2 class="page-title">Unidades Vehiculares</h2>
+        <p class="page-subtitle">Gestión y control de la flotilla operativa</p>
+      </div>
+    </div>
+
+    <div class="toolbar-actions">
+      <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+        <mat-label>Buscar unidad</mat-label>
+        <input matInput #searchInput (keyup)="applyFilter($event)" placeholder="Unidad, placa, marca..." autocomplete="off">
+        <mat-icon matPrefix class="search-icon">search</mat-icon>
+        <button *ngIf="filterValue" mat-icon-button matSuffix aria-label="Limpiar" (click)="clearFilter(searchInput)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <!-- 🔥 CANDADO: Solo ADMIN crea unidades nuevas -->
+      <button *ngIf="userRole === 'ADMIN'" mat-raised-button color="primary" class="btn-nueva" (click)="openForm()" aria-label="Registrar nueva unidad">
+        <mat-icon>add</mat-icon>
+        <span class="btn-label">Nueva Unidad</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-chip stat-total">
+      <div class="stat-icon-wrap"><mat-icon>garage</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.total }}</span>
+        <span class="stat-label">Total</span>
+      </div>
+    </div>
+
+    <div class="stat-chip stat-operativo">
+      <div class="stat-icon-wrap"><mat-icon>check_circle</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.operativos }}</span>
+        <span class="stat-label">Operativas</span>
+      </div>
+    </div>
+
+    <div class="stat-chip stat-taller">
+      <div class="stat-icon-wrap"><mat-icon>build_circle</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.enTaller }}</span>
+        <span class="stat-label">En Taller</span>
+      </div>
+    </div>
+
+    <div class="stat-chip stat-fuera">
+      <div class="stat-icon-wrap"><mat-icon>cancel</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.total - stats.operativos - stats.enTaller }}</span>
+        <span class="stat-label">Fuera Servicio</span>
+      </div>
+    </div>
+  </div>
+
+  <mat-card class="table-card">
+    <mat-progress-bar *ngIf="isLoading" mode="indeterminate" class="loading-bar" aria-label="Cargando unidades"></mat-progress-bar>
+
+    <div class="empty-state" *ngIf="!isLoading && dataSource.data.length === 0">
+      <mat-icon class="empty-icon">garage</mat-icon>
+      <p class="empty-title">Sin unidades registradas</p>
+      <p class="empty-sub">Registra la primera unidad de la flotilla.</p>
+      
+      <!-- 🔥 CANDADO: Solo ADMIN crea la primera unidad -->
+      <button *ngIf="userRole === 'ADMIN'" mat-stroked-button color="primary" (click)="openForm()">
+        <mat-icon>add</mat-icon> Agregar primera unidad
+      </button>
+    </div>
+
+    <div class="table-wrapper" [class.hidden]="!isLoading && dataSource.data.length === 0">
+      <table mat-table [dataSource]="dataSource" matSort matSortActive="unidad" matSortDirection="asc" class="vehiculos-table" aria-label="Tabla de unidades vehiculares">
+
+        <ng-container matColumnDef="num">
+          <th mat-header-cell *matHeaderCellDef class="col-num">#</th>
+          <td mat-cell *matCellDef="let v; let i = index" class="col-num">{{ getRowNumber(i) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="unidad">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Unidad</th>
+          <td mat-cell *matCellDef="let v">
+            <div class="unidad-cell">
+              <div class="unidad-icon-wrap" [ngClass]="'icon-' + getTipoClass(v.tipoVehiculo?.TIPO)">
+                <mat-icon>{{ getIconForTipo(v.tipoVehiculo?.TIPO) }}</mat-icon>
+              </div>
+              <div class="unidad-info">
+                <p class="unidad-placa" style="font-size: 15px; margin-bottom: 2px;">{{ v.NUMERO_UNIDAD || 'S/N' }}</p>
+                <p class="unidad-detalle">
+                  {{ v.MARCA }} {{ v.MODELO }} <ng-container *ngIf="v.ANIO">{{ v.ANIO }}</ng-container>
+                </p>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+        
+        <ng-container matColumnDef="placa">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Placa</th>
+          <td mat-cell *matCellDef="let v">
+            <span style="font-weight: 500; letter-spacing: 0.5px; color: var(--text-medium);">{{ v.PLACA }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="tipo">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Tipo</th>
+          <td mat-cell *matCellDef="let v">
+            <span class="badge" [ngClass]="getTipoClass(v.tipoVehiculo?.TIPO)" *ngIf="v.tipoVehiculo?.TIPO; else sinTipo">
+              {{ v.tipoVehiculo.TIPO }}
+            </span>
+            <ng-template #sinTipo><span class="badge badge-default">—</span></ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+          <td mat-cell *matCellDef="let v">
+            <span class="badge" [ngClass]="getEstadoClass(v.estadoVehiculo?.ESTADO)">
+              {{ v.estadoVehiculo?.ESTADO || '—' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="kilometraje">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-km">Kilometraje</th>
+          <td mat-cell *matCellDef="let v" class="col-km">
+            <span class="km-value" *ngIf="v.KILOMETRAJE_ACTUAL !== null && v.KILOMETRAJE_ACTUAL !== undefined; else sinKm">
+              {{ v.KILOMETRAJE_ACTUAL | number:'1.0-0' }} <span class="km-unit">km</span>
+            </span>
+            <ng-template #sinKm><span class="text-dim">—</span></ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="col-acciones">Acciones</th>
+          <td mat-cell *matCellDef="let v" class="col-acciones">
+            
+            <!-- 🔥 LÁPIZ: Visible para todos, para que el despacho reporte averías y km -->
+            <button mat-icon-button class="btn-editar" matTooltip="Editar unidad" matTooltipPosition="above" (click)="onEdit(v)" aria-label="Editar">
+              <mat-icon>edit</mat-icon>
+            </button>
+            
+            <!-- 🔥 BASURERO: Candado, solo ADMIN lo ve -->
+            <button *ngIf="userRole === 'ADMIN'" mat-icon-button class="btn-eliminar" matTooltip="Dar de baja" matTooltipPosition="above" (click)="onDelete(v)" [disabled]="deletingId === v.ID_VEHICULO" aria-label="Eliminar">
+              <mat-icon>{{ deletingId === v.ID_VEHICULO ? 'hourglass_empty' : 'delete_outline' }}</mat-icon>
+            </button>
+
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+
+        <tr class="mat-row no-data-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="no-data-msg">
+              <mat-icon>search_off</mat-icon>
+              <span>Sin resultados para "<strong>{{ filterValue }}</strong>"</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="5" showFirstLastButtons aria-label="Páginas de registros"></mat-paginator>
+
+  </mat-card>
+</div>

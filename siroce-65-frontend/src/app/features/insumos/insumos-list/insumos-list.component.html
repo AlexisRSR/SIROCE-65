@@ -1,0 +1,177 @@
+<div class="il-container page-enter">
+
+  <header class="page-toolbar">
+    <div class="page-title-area">
+      <mat-icon class="page-title-icon">inventory_2</mat-icon>
+      <div>
+        <h2 class="page-title">Catálogo Unificado de Recursos</h2>
+        <p class="page-subtitle">Insumos médicos, Herramientas de rescate y Equipo de Protección Personal (EPP)</p>
+      </div>
+    </div>
+    <div class="toolbar-actions">
+      <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+        <mat-label>Buscar recurso</mat-label>
+        <input matInput #searchInput (keyup)="applyFilter($event)" placeholder="Nombre, marca, modelo…" autocomplete="off">
+        <mat-icon matPrefix class="search-icon">search</mat-icon>
+        <button *ngIf="filterValue" mat-icon-button matSuffix (click)="clearFilter(searchInput)"><mat-icon>close</mat-icon></button>
+      </mat-form-field>
+      
+      <!-- 🔥 1. CANDADO EN EL BOTÓN PRINCIPAL -->
+      <button *ngIf="userRole === 'ADMIN'" mat-raised-button color="primary" class="btn-nuevo" (click)="openForm()">
+        <mat-icon>add_circle_outline</mat-icon>
+        <span class="btn-label">Nuevo Recurso</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-chip stat-total">
+      <div class="stat-icon-wrap"><mat-icon>inventory_2</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.total }}</span>
+        <span class="stat-label">Total Recursos</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-medico">
+      <div class="stat-icon-wrap"><mat-icon>local_hospital</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.medicos }}</span>
+        <span class="stat-label">Médico</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-herramienta">
+      <div class="stat-icon-wrap"><mat-icon>construction</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.herramientas }}</span>
+        <span class="stat-label">Herramientas</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-rescate">
+      <div class="stat-icon-wrap"><mat-icon>security</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.epp }}</span>
+        <span class="stat-label">EPP</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-bajo" *ngIf="stats.bajoStock > 0">
+      <div class="stat-icon-wrap"><mat-icon>warning</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.bajoStock }}</span>
+        <span class="stat-label">Alertas de Stock</span>
+      </div>
+    </div>
+  </div>
+
+  <mat-card class="table-card">
+    <mat-progress-bar *ngIf="isLoading" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+    <div class="empty-state" *ngIf="!isLoading && dataSource.data.length === 0">
+      <mat-icon class="empty-icon">inventory_2</mat-icon>
+      <p class="empty-title">Sin recursos registrados</p>
+      
+      <!-- 🔥 2. CANDADO EN EL BOTÓN DE ESTADO VACÍO -->
+      <button *ngIf="userRole === 'ADMIN'" mat-stroked-button color="primary" (click)="openForm()">
+        <mat-icon>add</mat-icon> Agregar recurso
+      </button>
+    </div>
+
+    <div class="table-wrapper" [class.hidden]="!isLoading && dataSource.data.length === 0">
+      <table mat-table [dataSource]="dataSource" matSort matSortActive="nombre" matSortDirection="asc" class="insumos-table">
+
+        <ng-container matColumnDef="num">
+          <th mat-header-cell *matHeaderCellDef class="col-num">#</th>
+          <td mat-cell *matCellDef="let ins; let i = index" class="col-num">{{ getRowNumber(i) }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Recurso</th>
+          <td mat-cell *matCellDef="let ins">
+            <div class="nombre-cell">
+              <div class="insumo-icon" [ngClass]="'icon-' + getTipoClass(ins.tipoInsumo)">
+                <mat-icon>{{ getTipoIcon(ins.tipoInsumo) }}</mat-icon>
+              </div>
+              <div class="insumo-info">
+                <p class="insumo-nombre">{{ ins.nombre }}</p>
+                <p class="insumo-desc" *ngIf="ins.descripcion" style="font-size: 11px; opacity: 0.7;">{{ ins.descripcion }}</p>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="tipo">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Clasificación</th>
+          <td mat-cell *matCellDef="let ins">
+            <span class="badge" [ngClass]="getTipoClass(ins.tipoInsumo)">
+              {{ getTipoLabel(ins.tipoInsumo) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="proposito">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Propósito Operativo</th>
+          <td mat-cell *matCellDef="let ins">
+             <span style="color: var(--text-primary); font-size: 13px;">{{ ins.proposito || '—' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="marca">
+          <th mat-header-cell *matHeaderCellDef>Trazabilidad</th>
+          <td mat-cell *matCellDef="let ins">
+             <div *ngIf="ins.marca || ins.modelo; else sinTrazabilidad" style="display: flex; flex-direction: column; line-height: 1.5; padding: 4px 0;">
+               <span style="color: var(--accent-info); font-weight: 500; font-size: 13px;">{{ ins.marca }} {{ ins.modelo }}</span>
+               <span style="color: var(--text-dim); font-size: 11px;">SN: {{ ins.numeroSerie || 'N/A' }}</span>
+             </div>
+             <ng-template #sinTrazabilidad>
+               <span style="background: var(--bg-chip); color: var(--text-dim); padding: 4px 8px; border-radius: 4px; font-size: 11px; letter-spacing: 0.5px;">N/A (Consumible)</span>
+             </ng-template>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="stock">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-stock">Existencia</th>
+          <td mat-cell *matCellDef="let ins" class="col-stock">
+            <div class="stock-cell">
+              <span class="stock-value" [ngClass]="getStockClass(ins.stock)">{{ ins.stock | number:'1.0-0' }}</span>
+              <mat-icon class="stock-warn-icon" *ngIf="ins.stock < 10" matTooltip="Stock crítico">warning_amber</mat-icon>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+          <td mat-cell *matCellDef="let ins">
+            <span class="badge" [ngClass]="getEstadoClass(ins.estado)">{{ ins.estado || '—' }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="col-acciones">Acciones</th>
+          <td mat-cell *matCellDef="let ins" class="col-acciones">
+            
+            <!-- El lápiz lo ven todos para poder actualizar stock y estados -->
+            <button mat-icon-button class="btn-editar" matTooltip="Editar" matTooltipPosition="above" (click)="onEdit(ins)">
+              <mat-icon>edit</mat-icon>
+            </button>
+            
+            <!-- 🔥 EL BASURERO SOLO LO VE EL ADMIN -->
+            <button *ngIf="userRole === 'ADMIN'" mat-icon-button class="btn-eliminar" matTooltip="Eliminar" matTooltipPosition="above" (click)="onDelete(ins)" [disabled]="deletingId === ins.id">
+              <mat-icon>{{ deletingId === ins.id ? 'hourglass_empty' : 'delete_outline' }}</mat-icon>
+            </button>
+
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+        <tr class="mat-row no-data-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="no-data-msg"><mat-icon>search_off</mat-icon><span>Sin resultados para "<strong>{{ filterValue }}</strong>"</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="5" showFirstLastButtons aria-label="Páginas de registros"></mat-paginator>
+  </mat-card>
+
+</div>

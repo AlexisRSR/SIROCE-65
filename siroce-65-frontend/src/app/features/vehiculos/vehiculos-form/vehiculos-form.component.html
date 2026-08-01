@@ -1,0 +1,164 @@
+<div class="vf-dialog-wrapper">
+
+  <div mat-dialog-title class="vf-header">
+    <div class="vf-header-icon">
+      <mat-icon>{{ isEditMode ? 'edit' : 'add' }}</mat-icon>
+    </div>
+    <div class="vf-header-text">
+      <h2 class="vf-title">{{ isEditMode ? 'Editar Unidad' : 'Nueva Unidad' }}</h2>
+      <p class="vf-subtitle">
+        {{ isEditMode ? 'Actualiza los datos de la unidad seleccionada' : 'Registra una nueva unidad en la flotilla' }}
+      </p>
+    </div>
+    <button mat-icon-button class="vf-close" (click)="onCancel()" [disabled]="isSaving" aria-label="Cerrar">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="vf-content">
+
+    <mat-progress-bar *ngIf="isSaving" mode="indeterminate" class="vf-progress"></mat-progress-bar>
+
+    <div class="vf-error" *ngIf="errorMsg" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMsg }}</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate id="vf-form" class="vf-form">
+
+      <p class="section-label">
+        <mat-icon class="section-icon">directions_car</mat-icon>
+        Identificación de la unidad
+      </p>
+
+      <div class="form-row" style="display: flex; gap: 15px;">
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>Número de Unidad*</mat-label>
+          <input matInput formControlName="NUMERO_UNIDAD" placeholder="Ej. B-101" maxlength="20" style="text-transform: uppercase;">
+          <mat-icon matSuffix class="field-icon">tag</mat-icon>
+          <mat-error *ngIf="f['NUMERO_UNIDAD'].hasError('required')">Obligatorio.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>Placa*</mat-label>
+          <input matInput formControlName="PLACA" placeholder="Ej. CA451248" maxlength="20" style="text-transform: uppercase;">
+          <mat-icon matSuffix class="field-icon">pin</mat-icon>
+          <mat-error *ngIf="f['PLACA'].hasError('required')">Obligatorio.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row" style="display: flex; gap: 15px;">
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>Marca*</mat-label>
+          <input matInput formControlName="MARCA" placeholder="Ej. TOYOTA" maxlength="50" style="text-transform: uppercase;">
+          <mat-error *ngIf="f['MARCA'].hasError('required')">Obligatorio.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>Modelo*</mat-label>
+          <input matInput formControlName="MODELO" placeholder="Ej. HiAce" maxlength="50">
+          <mat-error *ngIf="f['MODELO'].hasError('required')">Obligatorio.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>Año del Modelo</mat-label>
+          <input matInput formControlName="ANIO" type="number" placeholder="Ej. 2025" min="1950" max="2100" (keypress)="soloNumerosDecimales($event)">
+          <mat-error *ngIf="f['ANIO'].hasError('min') || f['ANIO'].hasError('max')">Año no válido.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row" style="display: flex; gap: 15px;">
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>No. de Chasis (VIN) - Opcional</mat-label>
+          <input matInput formControlName="CHASIS" placeholder="1HGCM826..." maxlength="50" style="text-transform: uppercase;">
+          <mat-icon matSuffix class="field-icon">qr_code</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
+          <mat-label>No. de Motor - Opcional</mat-label>
+          <input matInput formControlName="MOTOR" placeholder="K24Z7..." maxlength="50" style="text-transform: uppercase;">
+          <mat-icon matSuffix class="field-icon">settings</mat-icon>
+        </mat-form-field>
+      </div>
+
+      <mat-divider class="section-divider"></mat-divider>
+
+      <p class="section-label">
+        <mat-icon class="section-icon">local_fire_department</mat-icon>
+        Operatividad
+      </p>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Tipo de unidad*</mat-label>
+          <mat-select formControlName="ID_TIPO_V">
+            <mat-option *ngFor="let t of tipos" [value]="t.ID_TIPO_V">{{ t.TIPO }}</mat-option>
+          </mat-select>
+          <mat-icon matSuffix class="field-icon">category</mat-icon>
+          <mat-error *ngIf="f['ID_TIPO_V'].hasError('required')">Selecciona un tipo.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Estado operativo*</mat-label>
+          <mat-select formControlName="ID_ESTADO_V">
+            <mat-option *ngFor="let e of estados" [value]="e.ID_ESTADO_V">{{ e.ESTADO }}</mat-option>
+          </mat-select>
+          <mat-icon matSuffix class="field-icon">toggle_on</mat-icon>
+          <mat-error *ngIf="f['ID_ESTADO_V'].hasError('required')">Selecciona un estado.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Kilometraje actual*</mat-label>
+          <input matInput type="number" formControlName="KILOMETRAJE_ACTUAL" placeholder="0" min="0" (keypress)="soloNumerosDecimales($event)">
+          <span matSuffix class="km-suffix">km</span>
+          <mat-error *ngIf="f['KILOMETRAJE_ACTUAL'].hasError('required')">Obligatorio.</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Fecha de Ingreso</mat-label>
+          <input 
+            matInput 
+            formControlName="FECHA_INGRESO" 
+            [matDatepicker]="pickerVehiculo" 
+            placeholder="DD/MM/AAAA" 
+            readonly 
+            (click)="pickerVehiculo.open()"
+            style="cursor: pointer;">
+          <mat-datepicker-toggle matIconSuffix [for]="pickerVehiculo" style="color: var(--text-faint)"></mat-datepicker-toggle>
+          <mat-datepicker #pickerVehiculo></mat-datepicker>
+        </mat-form-field>
+      </div>
+
+      <mat-divider class="section-divider"></mat-divider>
+
+      <p class="section-label">
+        <mat-icon class="section-icon">history_edu</mat-icon>
+        Bitácora
+      </p>
+      
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field" style="width: 200%;">
+          <mat-label>Observaciones (Opcional)</mat-label>
+          <textarea matInput formControlName="OBSERVACIONES" rows="2"
+            placeholder="Anota reparaciones, donaciones, detalles mecánicos o si se da de baja..."></textarea>
+        </mat-form-field>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="vf-actions" align="end">
+    <button mat-button class="btn-cancel" type="button" (click)="onCancel()" [disabled]="isSaving">
+      <mat-icon>close</mat-icon> Cancelar
+    </button>
+
+    <button mat-raised-button color="primary" class="btn-save" type="submit" form="vf-form" [disabled]="form.invalid || isSaving">
+      <mat-icon *ngIf="!isSaving">save</mat-icon>
+      <mat-icon *ngIf="isSaving" class="spin-icon">sync</mat-icon>
+      <span>{{ isSaving ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Registrar') }}</span>
+    </button>
+  </mat-dialog-actions>
+
+</div>

@@ -1,0 +1,287 @@
+<div class="sl-container page-enter">
+
+  <header class="page-toolbar">
+    <div class="page-title-area">
+      <div class="title-icon-wrap">
+        <mat-icon>dashboard_customize</mat-icon>
+      </div>
+      <div>
+        <h2 class="page-title">Control Operativo (Emergencias y Servicios)</h2>
+        <p class="page-subtitle">Despacho, cronometraje y cierre de incidentes SIROCE-65</p>
+      </div>
+    </div>
+    <div class="toolbar-actions">
+      <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+        <mat-label>Buscar registro</mat-label>
+        <input matInput #searchInput (keyup)="applyFilter($event)"
+               placeholder="Tipo, descripción, estado…" autocomplete="off">
+        <mat-icon matPrefix class="search-icon">search</mat-icon>
+        <button *ngIf="filterValue" mat-icon-button matSuffix (click)="clearFilter(searchInput)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+      <button mat-raised-button color="primary" class="btn-nueva" (click)="openForm()">
+        <mat-icon>add_alert</mat-icon>
+        <span class="btn-label">Nueva Emergencia</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-chip stat-total">
+      <div class="stat-icon-wrap"><mat-icon>assessment</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.total }}</span>
+        <span class="stat-label">Total Histórico</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-mes">
+      <div class="stat-icon-wrap"><mat-icon>calendar_month</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.esteMes }}</span>
+        <span class="stat-label">Este mes</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-semana">
+      <div class="stat-icon-wrap"><mat-icon>date_range</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.estaSemana }}</span>
+        <span class="stat-label">Esta semana</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-hoy">
+      <div class="stat-icon-wrap"><mat-icon>today</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.hoy }}</span>
+        <span class="stat-label">Registradas hoy</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔥 NUEVO BLOQUE: LEYENDA DE COLORES Y ESTADOS -->
+  <mat-accordion style="margin-bottom: 16px; display: block;">
+    <mat-expansion-panel style="background: var(--bg-dialog-surface); border: 1px solid var(--border-color); color: var(--text-primary);">
+      <mat-expansion-panel-header>
+        <mat-panel-title style="color: var(--text-bright); display: flex; align-items: center; gap: 10px;">
+          <!-- Cambiamos el ícono a traffic (semáforo) y el texto -->
+          <mat-icon style="color: #00bcd4;">traffic</mat-icon> 
+          <span>Estados Operativos (Clic para ver)</span>
+        </mat-panel-title>
+      </mat-expansion-panel-header>
+
+      <div class="flujo-container-clean">
+        
+        <!-- 🟡 ESTADO 1: PENDIENTE -->
+        <div class="paso-item" style="border-top: 4px solid #ffb74d;" 
+             matTooltip="Paso 1: Llamada recibida. Requiere despachar unidad pronto." matTooltipPosition="above">
+          <mat-icon style="color: #ffb74d;">add_alert</mat-icon>
+          <span class="paso-text">PENDIENTE</span>
+        </div>
+
+        <!-- 🔵 ESTADO 2: EN ATENCIÓN -->
+        <div class="paso-item" style="border-top: 4px solid #4fc3f7;" 
+             matTooltip="Paso 2: La unidad fue despachada y va en camino al lugar." matTooltipPosition="above">
+          <mat-icon style="color: #4fc3f7;">fire_truck</mat-icon>
+          <span class="paso-text">EN ATENCIÓN</span>
+        </div>
+
+        <!-- 🟣 ESTADO 3: REDACTANDO INFORME -->
+        <div class="paso-item" style="border-top: 4px solid #ba68c8;" 
+             matTooltip="Paso 3: La unidad retornó a base. Falta llenar los datos finales." matTooltipPosition="above">
+          <mat-icon style="color: #ba68c8;">history_edu</mat-icon>
+          <span class="paso-text">REDACTANDO</span>
+        </div>
+
+        <!-- 🟢 ESTADO 4: FINALIZADA -->
+        <div class="paso-item" style="border-top: 4px solid #81c784;" 
+             matTooltip="Paso 4: Emergencia cerrada con éxito. PDF listo para imprimir." matTooltipPosition="above">
+          <mat-icon style="color: #81c784;">task_alt</mat-icon>
+          <span class="paso-text">FINALIZADA</span>
+        </div>
+
+        <!-- 🔴 EXCEPCIÓN: CANCELADA -->
+        <div class="paso-item" style="border-top: 4px solid #ef5350;" 
+             matTooltip="Excepción: Falsa alarma, error o llamada de broma. Anula el reporte." matTooltipPosition="above">
+          <mat-icon style="color: #ef5350;">cancel</mat-icon>
+          <span class="paso-text">CANCELADA</span>
+        </div>
+
+      </div>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <mat-card class="table-card">
+    <mat-progress-bar *ngIf="isLoading" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+    <div class="empty-state" *ngIf="!isLoading && dataSource.data.length === 0">
+      <mat-icon class="empty-icon">local_fire_department</mat-icon>
+      <p class="empty-title">Centro de Despacho en Blanco</p>
+      <p class="empty-sub">Registra la primera emergencia para comenzar el control.</p>
+      <button mat-stroked-button color="primary" (click)="openForm()">
+        <mat-icon>add_alert</mat-icon> Registrar emergencia
+      </button>
+    </div>
+
+    <div class="table-wrapper" [class.hidden]="!isLoading && dataSource.data.length === 0">
+      <table mat-table [dataSource]="dataSource" matSort matSortActive="fecha" matSortDirection="desc" class="servicios-table">
+
+        <ng-container matColumnDef="num">
+          <th mat-header-cell *matHeaderCellDef class="col-num">#</th>
+          <td mat-cell *matCellDef="let s; let i = index" class="col-num">
+            {{ paginator.pageIndex * paginator.pageSize + i + 1 }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="emergencia">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Naturaleza del Evento</th>
+          <td mat-cell *matCellDef="let s">
+            <div class="emergencia-cell">
+              <div class="tipo-icon-wrap" [ngClass]="'icon-' + getTipoClass(s.tipoServicioNombre)">
+                <mat-icon>{{ getTipoIcon(s.tipoServicioNombre) }}</mat-icon>
+              </div>
+              <div class="emergencia-info">
+                <p class="tipo-label">{{ s.tipoServicioNombre }}</p>
+                <p class="desc-label" *ngIf="s.descripcion" [matTooltip]="s.descripcion" [matTooltipDisabled]="s.descripcion.length <= 55" matTooltipPosition="above">
+                  {{ s.descripcion }}
+                </p>
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="direccion">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Dirección</th>
+          <td mat-cell *matCellDef="let s">
+            <div class="direccion-cell">
+              <mat-icon class="dir-icon">location_on</mat-icon>
+              <span [matTooltip]="s.direccionServicio" [matTooltipDisabled]="s.direccionServicio.length <= 40" matTooltipPosition="above">
+                {{ s.direccionServicio || '—' }}
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="solicitante">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Reportó</th>
+          <td mat-cell *matCellDef="let s">
+            <div class="solicitante-cell">
+              <span class="solicitante-name">
+                <mat-icon class="sol-icon">person</mat-icon> {{ s.nombreSolicitante || 'Anónimo' }}
+              </span>
+              <span class="solicitante-tel" *ngIf="s.telefonoSolicitante">
+                <mat-icon class="sol-icon-small">phone</mat-icon> {{ s.telefonoSolicitante }}
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="unidad">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Unidad</th>
+          <td mat-cell *matCellDef="let s">
+            <span *ngIf="s.unidadDestacada && s.unidadDestacada !== 'No asignada'"
+              style="display: inline-flex; align-items: center; background: rgba(0, 188, 212, 0.1); color: #00bcd4; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; cursor: help;"
+              [matTooltip]="s.unidadDestacada" matTooltipPosition="above">
+              <mat-icon style="font-size: 14px; width: 14px; height: 14px; margin-right: 4px;">directions_car</mat-icon>
+              {{ s.unidadDestacada.split(',')[0] }}
+              <span *ngIf="s.unidadDestacada.includes(',')" style="margin-left: 4px; font-weight: bold;">
+                (+{{ s.unidadDestacada.split(',').length - 1 }})
+              </span>
+            </span>
+            <span *ngIf="!s.unidadDestacada || s.unidadDestacada === 'No asignada'"
+              style="color: var(--text-faint); font-size: 12px; font-style: italic;">
+              Sin asignar
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Estado</th>
+          <td mat-cell *matCellDef="let s">
+            <div style="display: flex; align-items: center;">
+              <span class="badge-estado" [ngClass]="getEstadoClass(s.estado)"
+                    [matTooltip]="s.motivoCancelado ? 'Motivo: ' + s.motivoCancelado : ''" 
+                    matTooltipPosition="above"
+                    [style.background]="s.estado === 'Cancelada' ? 'rgba(239, 83, 80, 0.15)' : null"
+                    [style.color]="s.estado === 'Cancelada' ? '#ff5252' : null"
+                    [style.border]="s.estado === 'Cancelada' ? '1px solid rgba(239, 83, 80, 0.3)' : null"
+                    [style.cursor]="s.estado === 'Cancelada' ? 'help' : 'default'">
+                <mat-icon class="estado-icon" [style.color]="s.estado === 'Cancelada' ? '#ff5252' : null">{{ getEstadoIcon(s.estado) }}</mat-icon>
+                {{ s.estado | uppercase }}
+              </span>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="fecha">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header class="col-fecha">Fecha</th>
+          <td mat-cell *matCellDef="let s" class="col-fecha">
+            <span class="fecha-badge" style="display: flex; flex-direction: column; line-height: 1.4;">
+              <span style="font-weight: 500; font-size: 13px;">{{ s.fechaServicio ? (s.fechaServicio | date:'dd/MM/yyyy') : '—' }}</span>
+              <span style="color: var(--text-dim); font-size: 11px;" *ngIf="s.horaSalida">S: {{ s.horaSalida | date:'HH:mm' }}</span>
+              <span style="color: var(--text-dim); font-size: 11px;" *ngIf="s.horaEntrada">E: {{ s.horaEntrada | date:'HH:mm' }}</span>
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef class="col-acciones">Control</th>
+          <td mat-cell *matCellDef="let s" class="col-acciones">
+            
+            <button mat-icon-button class="btn-editar" *ngIf="s.estado !== 'Finalizada' && s.estado !== 'Cancelada' || isAdmin" 
+                    matTooltip="Editar / Finalizar" matTooltipPosition="above" (click)="onEdit(s)">
+              <mat-icon>edit</mat-icon>
+            </button>
+
+            <button mat-icon-button *ngIf="s.estado === 'Pendiente'" 
+                    matTooltip="Despachar recursos" matTooltipPosition="above" (click)="onAsignar(s)" 
+                    style="color: #ff9800; opacity: 1 !important;">
+              <mat-icon>fire_truck</mat-icon>
+            </button>
+
+            <button mat-icon-button class="btn-play" *ngIf="s.estado === 'Pendiente'" 
+                    matTooltip="Dar Salida (Cronómetro)" matTooltipPosition="above" (click)="onCambiarEstado(s, 'SALIDA')">
+              <mat-icon>play_circle_filled</mat-icon>
+            </button>
+
+            <button mat-icon-button class="btn-stop" *ngIf="s.estado === 'En Atención' && !s.horaEntrada"
+                    matTooltip="Dar Entrada a Base (Registrar Retorno)" matTooltipPosition="above" (click)="onCambiarEstado(s, 'ENTRADA')">
+              <mat-icon>stop_circle</mat-icon>
+            </button>
+
+            <button mat-icon-button class="btn-done" *ngIf="s.estado === 'Finalizada'" 
+                    matTooltip="Emergencia Cerrada Exitosamente" matTooltipPosition="above" disabled>
+              <mat-icon>verified</mat-icon>
+            </button>
+
+            <button mat-icon-button *ngIf="s.estado === 'Finalizada'" 
+                    matTooltip="Imprimir Informe Legal" matTooltipPosition="above" (click)="imprimirInforme(s)"
+                    style="color: #ff5252; opacity: 1 !important;">
+              <mat-icon>picture_as_pdf</mat-icon>
+            </button>
+
+            <button mat-icon-button class="btn-eliminar" *ngIf="isAdmin" 
+                    matTooltip="Eliminar Registro" matTooltipPosition="above" (click)="onDelete(s)" [disabled]="deletingId === s.id">
+              <mat-icon>{{ deletingId === s.id ? 'hourglass_empty' : 'delete_outline' }}</mat-icon>
+            </button>
+            
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+
+        <tr class="mat-row no-data-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="8">
+            <div class="no-data-msg">
+              <mat-icon>search_off</mat-icon>
+              <span>Sin resultados para "<strong>{{ filterValue }}</strong>"</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[5, 10, 25, 50]" [pageSize]="5" showFirstLastButtons aria-label="Páginas de registros"></mat-paginator>
+  </mat-card>
+
+</div>

@@ -1,0 +1,143 @@
+<div class="uf-dialog-wrapper">
+  <!-- Cabecera Roja -->
+  <div mat-dialog-title class="uf-header">
+    <div class="uf-header-icon-wrap">
+      <mat-icon>{{ isEditMode ? 'edit' : 'person_add' }}</mat-icon>
+    </div>
+    <div class="uf-header-text">
+      <h2 class="uf-title">{{ isEditMode ? 'Editar Operador' : 'Nuevo Operador' }}</h2>
+      <p class="uf-subtitle">{{ isEditMode ? 'Actualiza los datos del usuario seleccionado' : 'Completa el formulario para registrar el acceso' }}</p>
+    </div>
+    <button mat-icon-button class="uf-close-btn" (click)="onCancel()" [disabled]="isSaving">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <mat-dialog-content class="uf-content">
+    <div class="uf-error-box" *ngIf="errorMsg">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMsg }}</span>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" id="uf-form" class="uf-form">
+      
+      <p class="section-label">
+        <mat-icon class="section-icon">person_outline</mat-icon> Datos Personales
+      </p>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Nombre(s)**</mat-label>
+          <input matInput formControlName="nombre" placeholder="Ej. Carlos">
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Apellido(s)**</mat-label>
+          <input matInput formControlName="apellido" placeholder="Ej. Pérez">
+        </mat-form-field>
+      </div>
+
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field full-width">
+          <mat-label>DPI (13 dígitos sin espacios)**</mat-label>
+          <input matInput formControlName="dpi" maxlength="13" (keypress)="soloNumeros($event)">
+          <mat-icon matSuffix style="color: var(--text-faint)">badge</mat-icon>
+          
+          <mat-error *ngIf="form.get('dpi')?.hasError('required')">El DPI es obligatorio.</mat-error>
+          <mat-error *ngIf="form.get('dpi')?.hasError('pattern')">Debe contener exactamente 13 números.</mat-error>
+        </mat-form-field>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <p class="section-label">
+        <mat-icon class="section-icon">vpn_key</mat-icon> Credenciales de Acceso
+      </p>
+
+      <!-- Fila 1: Usuario y Rol -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Usuario del Sistema**</mat-label>
+          <input matInput formControlName="usuario" autocomplete="off" [readonly]="isEditMode">
+          <mat-icon matSuffix style="color: var(--text-faint)">account_circle</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Rol Asignado**</mat-label>
+          <mat-select formControlName="rol">
+            <mat-option value="DESPACHO">Operador (Cabina)</mat-option>
+            <mat-option value="ADMIN">Administrador</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </div>
+
+      <!-- Fila 2: Contraseñas -->
+      <div class="form-row">
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>{{ isEditMode ? 'Nueva Contraseña' : 'Contraseña Segura**' }}</mat-label>
+          <input matInput formControlName="password" [type]="hidePassword ? 'password' : 'text'" autocomplete="new-password" placeholder="••••••••" maxlength="15">
+          <span matSuffix style="display: flex; align-items: center;">
+            <button mat-icon-button (click)="generarPasswordSegura()" type="button" tabindex="-1" matTooltip="Autogenerar contraseña segura" aria-label="Autogenerar contraseña segura">
+              <mat-icon style="color: var(--text-faint)">auto_fix_high</mat-icon>
+            </button>
+            <button mat-icon-button (click)="hidePassword = !hidePassword" type="button" tabindex="-1">
+              <mat-icon style="color: var(--text-faint)">{{hidePassword ? 'visibility_off' : 'visibility'}}</mat-icon>
+            </button>
+          </span>
+
+          <mat-hint *ngIf="isEditMode && passValue.length === 0" style="color: var(--text-dim); font-size: 11px;">
+            Déjalo en blanco para conservar la actual
+          </mat-hint>
+          
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="form-field">
+          <mat-label>Confirmar Contraseña {{ isEditMode ? '' : '**' }}</mat-label>
+          <input matInput formControlName="confirmPassword" [type]="hideConfirm ? 'password' : 'text'" autocomplete="new-password" placeholder="••••••••" maxlength="15">
+          <button mat-icon-button matSuffix (click)="hideConfirm = !hideConfirm" type="button" tabindex="-1">
+            <mat-icon style="color: var(--text-faint)">{{hideConfirm ? 'visibility_off' : 'visibility'}}</mat-icon>
+          </button>
+          <mat-error *ngIf="form.hasError('mismatch')">Las contraseñas no coinciden</mat-error>
+        </mat-form-field>
+      </div>
+
+      <!-- CAJA DE REQUISITOS OBLIGATORIOS -->
+      <div class="password-requirements" [class.error-border]="form.hasError('mismatch')" *ngIf="!isEditMode || passValue.length > 0">
+        <p class="req-title">REQUISITOS OBLIGATORIOS:</p>
+        <div class="req-grid">
+          <div class="req-item" [class.valid]="hasLength()">
+            <mat-icon>{{ hasLength() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>12 a 15 caracteres</span>
+          </div>
+          <div class="req-item" [class.valid]="hasUpper()">
+            <mat-icon>{{ hasUpper() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Una mayúscula</span>
+          </div>
+          <div class="req-item" [class.valid]="hasLower()">
+            <mat-icon>{{ hasLower() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Una minúscula</span>
+          </div>
+          <div class="req-item" [class.valid]="hasNumber()">
+            <mat-icon>{{ hasNumber() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Un número</span>
+          </div>
+          <div class="req-item" [class.valid]="hasSpecial()">
+            <mat-icon>{{ hasSpecial() ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
+            <span>Signo especial (&#64;, #, $, ., -)</span>
+          </div>
+        </div>
+      </div>
+
+    </form>
+  </mat-dialog-content>
+
+  <mat-dialog-actions class="uf-actions" align="end">
+    <button mat-button class="btn-cancel" type="button" (click)="onCancel()" [disabled]="isSaving">
+      <mat-icon>close</mat-icon> Cancelar
+    </button>
+    <button mat-raised-button color="primary" class="btn-save" type="button" (click)="onSubmit()" [disabled]="form.invalid || isSaving">
+      <mat-icon *ngIf="!isSaving">save</mat-icon>
+      <mat-icon *ngIf="isSaving" class="spin-icon">sync</mat-icon>
+      <span>{{ isSaving ? 'Guardando...' : (isEditMode ? 'Actualizar' : 'Registrar') }}</span>
+    </button>
+  </mat-dialog-actions>
+</div>
