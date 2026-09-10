@@ -1,0 +1,147 @@
+// src/app/features/bitacora/bitacora-list/bitacora-list.component.scss
+$red-dark      : #b71c1c;
+$card-bg       : var(--bg-card);
+$header-bg     : var(--bg-card-header);
+$border        : var(--border-color);
+$row-hover     : var(--tint-row-hover);
+$text-primary  : var(--text-primary);
+$text-dim      : var(--text-dim);
+
+// ── Contenedor ────────────────────────────────────────────────
+.bl-container { display: flex; flex-direction: column; gap: 20px; }
+
+// ── Toolbar ───────────────────────────────────────────────────
+.page-toolbar {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; flex-wrap: wrap; gap: 16px;
+}
+.page-title-area {
+  display: flex; align-items: center; gap: 14px;
+  .page-title-icon { font-size: 36px; width: 36px; height: 36px; color: $red-dark; }
+  .page-title      { margin: 0; font-size: 22px; font-weight: 600; color: $text-primary; line-height: 1.2; }
+  .page-subtitle   { margin: 3px 0 0; font-size: 12px; color: $text-dim; }
+}
+// ── Fila de filtros (texto + rango de fechas) ──────────────────
+.filters-row {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.search-field, .date-field, .modulo-field {
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper { background-color: $card-bg !important; }
+    .mdc-notched-outline__leading, .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing { border-color: $border !important; }
+  }
+}
+.search-field  { width: 280px; }
+.date-field    { width: 320px; mat-label, input { color: $text-primary; } }
+.modulo-field  { width: 210px; mat-label { color: $text-primary; } }
+.search-icon   { color: $text-dim; font-size: 18px; width: 18px; height: 18px; margin-right: 6px; }
+.btn-limpiar   { height: 48px; border-radius: 8px; gap: 6px; white-space: nowrap; }
+
+// ── Tabla ─────────────────────────────────────────────────────
+.table-card {
+  background-color: $card-bg !important; border: 1px solid $border !important;
+  border-radius: 8px !important; padding: 0 !important; overflow: hidden;
+  .loading-bar { border-radius: 0; }
+}
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 60px 24px; text-align: center;
+  .empty-icon  { font-size: 60px; width: 60px; height: 60px; color: var(--text-ghost); margin-bottom: 16px; }
+  .empty-title { margin: 0; font-size: 18px; font-weight: 500; color: $text-dim; }
+  .empty-sub   { margin: 6px 0 0; font-size: 13px; color: var(--text-faint); }
+}
+.table-wrapper { overflow-x: auto; &.hidden { display: none; } }
+
+.bitacora-table {
+  width: 100%; background-color: $card-bg !important;
+
+  .mat-mdc-header-row {
+    background-color: $header-bg !important;
+    .mat-mdc-header-cell {
+      color: var(--text-dim) !important; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.8px; text-transform: uppercase;
+      border-bottom: 1px solid $border !important;
+    }
+  }
+  .data-row {
+    transition: background-color 0.12s ease;
+    &:hover { background-color: $row-hover !important; }
+    .mat-mdc-cell { border-bottom: 1px solid $border !important; color: $text-primary; }
+  }
+  .col-id         { width: 90px; min-width: 90px; white-space: nowrap; color: $text-dim; }
+  .col-fecha-hora { width: 190px; color: $text-dim; }
+  .col-usuario    { width: 160px; }
+  .col-modulo     { width: 170px; }
+  .col-accion     { color: $text-primary; }
+}
+
+.badge-usuario {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  background: rgba(100, 181, 246, 0.15);
+  color: var(--accent-info-soft);
+  border: 1px solid rgba(100, 181, 246, 0.30);
+}
+
+// ── Badges de Módulo (columna "Módulo") ─────────────────────────
+.badge-modulo {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px;
+  text-transform: uppercase; white-space: nowrap;
+}
+.badge-modulo-emergencias {
+  background: rgba(239, 83, 80, 0.15); color: var(--accent-danger-soft);
+  border: 1px solid rgba(239, 83, 80, 0.35);
+}
+.badge-modulo-usuarios {
+  background: rgba(100, 181, 246, 0.15); color: var(--accent-info-soft);
+  border: 1px solid rgba(100, 181, 246, 0.35);
+}
+.badge-modulo-insumos {
+  background: rgba(102, 187, 106, 0.15); color: var(--accent-success-soft);
+  border: 1px solid rgba(102, 187, 106, 0.35);
+}
+.badge-modulo-bomberos {
+  background: rgba(255, 138, 101, 0.15); color: var(--accent-orange-soft);
+  border: 1px solid rgba(255, 138, 101, 0.35);
+}
+.badge-modulo-unidades {
+  background: rgba(79, 195, 247, 0.15); color: var(--accent-cyan-soft);
+  border: 1px solid rgba(79, 195, 247, 0.35);
+}
+.badge-modulo-tipos {
+  background: rgba(186, 104, 200, 0.15); color: var(--accent-purple-soft);
+  border: 1px solid rgba(186, 104, 200, 0.35);
+}
+.badge-modulo-default {
+  background: var(--bg-badge-neutral); color: $text-dim; border: 1px solid $border;
+}
+
+// ── Alerta semántica de eliminación (columna "Acción") ──────────
+.text-danger {
+  color: var(--accent-danger-soft);
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+}
+.icon-peligro {
+  font-size: 16px; width: 16px; height: 16px;
+  vertical-align: middle; margin-right: 4px; flex-shrink: 0;
+  color: var(--accent-danger-soft);
+}
+
+// ── Fila sin resultados ───────────────────────────────────────
+.no-data-row .mat-cell { border: none !important; }
+.no-data-msg {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 32px 16px; color: $text-dim; font-size: 14px;
+  mat-icon { font-size: 20px; width: 20px; height: 20px; }
+}
+
+// ── Responsive ────────────────────────────────────────────────
+@media (max-width: 768px) {
+  .page-toolbar { flex-direction: column; align-items: stretch; }
+  .filters-row  { flex-direction: column; align-items: stretch; }
+  .search-field, .date-field, .modulo-field, .btn-limpiar { width: 100%; }
+}

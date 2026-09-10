@@ -1,0 +1,114 @@
+<div class="bl-container page-enter">
+
+  <header class="page-toolbar">
+    <div class="page-title-area">
+      <mat-icon class="page-title-icon">fact_check</mat-icon>
+      <div>
+        <h2 class="page-title">Bitácora de Auditoría</h2>
+        <p class="page-subtitle">Historial de acciones registradas por el sistema</p>
+      </div>
+    </div>
+  </header>
+
+  <form [formGroup]="dateForm" class="filters-row">
+    <mat-form-field appearance="outline" class="search-field" subscriptSizing="dynamic">
+      <mat-label>Buscar en la bitácora</mat-label>
+      <input matInput #searchInput (keyup)="applyFilter($event)" placeholder="Usuario o acción…" autocomplete="off">
+      <mat-icon matPrefix class="search-icon">search</mat-icon>
+      <button *ngIf="filterValue" mat-icon-button matSuffix (click)="clearFilter(searchInput)"><mat-icon>close</mat-icon></button>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="date-field" subscriptSizing="dynamic">
+      <mat-label>Rango de fechas</mat-label>
+      <mat-date-range-input [rangePicker]="picker">
+        <input matStartDate formControlName="start" placeholder="Fecha inicio" (focus)="picker.open()">
+        <input matEndDate formControlName="end" placeholder="Fecha fin" (focus)="picker.open()">
+      </mat-date-range-input>
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-date-range-picker #picker></mat-date-range-picker>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="modulo-field" subscriptSizing="dynamic">
+      <mat-label>Filtrar por Módulo</mat-label>
+      <mat-select formControlName="modulo">
+        <mat-option value="todos">Todos</mat-option>
+        <mat-option value="emergencias">Emergencias</mat-option>
+        <mat-option value="usuarios">Usuarios</mat-option>
+        <mat-option value="bomberos">Bomberos</mat-option>
+        <mat-option value="unidades">Unidades</mat-option>
+        <mat-option value="insumos">Insumos</mat-option>
+        <mat-option value="tipos">Tipos de Emergencia</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-stroked-button type="button" class="btn-limpiar" *ngIf="tieneFiltrosActivos"
+            (click)="clearFilter(searchInput); limpiarFiltrosAvanzados()">
+      <mat-icon>filter_alt_off</mat-icon>
+      Limpiar filtros
+    </button>
+  </form>
+
+  <mat-card class="table-card">
+    <mat-progress-bar *ngIf="isLoading" mode="indeterminate" class="loading-bar"></mat-progress-bar>
+
+    <div class="empty-state" *ngIf="!isLoading && dataSource.data.length === 0">
+      <mat-icon class="empty-icon">fact_check</mat-icon>
+      <p class="empty-title">Sin registros de auditoría</p>
+      <p class="empty-sub" *ngIf="tieneFiltrosActivos">Ningún resultado coincide con los filtros aplicados.</p>
+    </div>
+
+    <div class="table-wrapper" [class.hidden]="!isLoading && dataSource.data.length === 0">
+      <table mat-table [dataSource]="dataSource" class="bitacora-table">
+
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef class="col-id">ID</th>
+          <td mat-cell *matCellDef="let reg" class="col-id">#{{ reg.id }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="fechaHora">
+          <th mat-header-cell *matHeaderCellDef class="col-fecha-hora">Fecha y Hora</th>
+          <td mat-cell *matCellDef="let reg" class="col-fecha-hora">{{ reg.fechaHora | date:"dd MMM yyyy, HH:mm 'hrs'" }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="usuario">
+          <th mat-header-cell *matHeaderCellDef class="col-usuario">Usuario</th>
+          <td mat-cell *matCellDef="let reg" class="col-usuario">
+            <span class="badge-usuario">{{ reg.usuario }}</span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="modulo">
+          <th mat-header-cell *matHeaderCellDef class="col-modulo">Módulo</th>
+          <td mat-cell *matCellDef="let reg" class="col-modulo">
+            <ng-container *ngIf="extraerModulo(reg.descripcion) as mod">
+              <span class="badge-modulo" [ngClass]="mod.claseColor">{{ mod.nombre }}</span>
+            </ng-container>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="accion">
+          <th mat-header-cell *matHeaderCellDef>Acción</th>
+          <td mat-cell *matCellDef="let reg" class="col-accion">
+            <ng-container *ngIf="obtenerAccionLimpia(reg.descripcion) as accionLimpia">
+              <span [class.text-danger]="esEliminacion(accionLimpia)">
+                <mat-icon *ngIf="esEliminacion(accionLimpia)" class="icon-peligro">delete_outline</mat-icon>
+                {{ accionLimpia }}
+              </span>
+            </ng-container>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="data-row"></tr>
+        <tr class="mat-row no-data-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
+            <div class="no-data-msg"><mat-icon>search_off</mat-icon><span>Sin resultados para los filtros aplicados</span></div>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <mat-paginator [pageSizeOptions]="[10, 25, 50, 100]" [pageSize]="10" showFirstLastButtons aria-label="Páginas de la bitácora"></mat-paginator>
+  </mat-card>
+
+</div>
