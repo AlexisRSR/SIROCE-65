@@ -5,8 +5,9 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "start:prod": "serve -s dist/siroce-65-frontend/browser -l $PORT" 
+    // "watch": "ng build --watch --configuration development",
+    // "test": "ng test"
   },
   "private": true,
   "packageManager": "npm@10.9.2",
@@ -27,6 +28,7 @@
     "ng-apexcharts": "^2.4.0",
     "pdfmake": "^0.3.11",
     "rxjs": "~7.8.0",
+    "serve": "^14.2.6",
     "tslib": "^2.3.0",
     "xlsx": "^0.18.5"
   },
