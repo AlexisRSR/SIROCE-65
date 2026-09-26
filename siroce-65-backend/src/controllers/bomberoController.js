@@ -6,7 +6,7 @@
 'use strict';
 
 const { Op, fn, col, where } = require('sequelize');
-const { sequelize }   = require('../config/database');
+const { sequelize }   = require('../config/database.js');
 const {
   Bombero,
   Persona,
