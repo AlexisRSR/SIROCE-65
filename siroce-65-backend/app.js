@@ -115,7 +115,8 @@ app.use((err, req, res, next) => {
 // ════════════════════════════════════════════════════════════
 //  ARRANQUE DEL SERVIDOR
 // ════════════════════════════════════════════════════════════
-const PORT = parseInt(process.env.PORT) || 3000;
+// const PORT = parseInt(process.env.PORT) || 3000;
+const PORT = process.env.PORT || 8080;
 
 const startServer = async () => {
   await connectDB(); // Conectar a MySQL primero
