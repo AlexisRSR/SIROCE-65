@@ -45,8 +45,7 @@ const getDashboardData = async (req, res) => {
     let finalizadas = 0;
 
     servicios.forEach(s => {
-      const obs = s.OBSERVACIONES_FINALES || '';
-      if (obs.includes('[CANCELADO / FALSA ALARMA]')) {
+      if (s.ES_FALSA_ALARMA) {
         canceladas++;
       } else if (s.HORA_SALIDA && !s.HORA_ENTRADA) {
         enAtencion++;
@@ -225,9 +224,8 @@ const getDashboardData = async (req, res) => {
       const fechaStr = s.FECHA_SERVICIO instanceof Date ? s.FECHA_SERVICIO.toISOString().split('T')[0] : String(s.FECHA_SERVICIO).substring(0,10);
       
       let estadoStr = 'Pendiente';
-      const obs = s.OBSERVACIONES_FINALES || '';
-      
-      if (obs.includes('[CANCELADO / FALSA ALARMA]')) {
+
+      if (s.ES_FALSA_ALARMA) {
          estadoStr = 'Cancelada';
       } else if (s.HORA_SALIDA && !s.HORA_ENTRADA) {
          estadoStr = 'En Atención';

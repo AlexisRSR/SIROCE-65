@@ -49,6 +49,29 @@ $text-dim      : var(--text-dim);
 }
 .search-icon { color: $text-dim; font-size: 18px; width: 18px; height: 18px; margin-right: 6px; }
 
+.date-range-field {
+  width: 280px;
+  ::ng-deep {
+    .mat-mdc-text-field-wrapper    { background-color: $card-bg !important; }
+    .mdc-notched-outline__leading,
+    .mdc-notched-outline__notch,
+    .mdc-notched-outline__trailing { border-color: $border !important; }
+
+    // 🔥 mat-date-range-input no hereda el estilo de un matInput plano: sin esto
+    // se ve un recuadro blanco con texto oscuro, rompiendo el tema oscuro.
+    .mat-date-range-input-container { background-color: transparent; }
+    .mat-date-range-input-inner {
+      color: var(--text-bright) !important;
+      -webkit-text-fill-color: var(--text-bright) !important;
+      background-color: transparent !important;
+      caret-color: var(--text-bright);
+
+      &::placeholder { color: var(--text-faint) !important; opacity: 1; }
+    }
+    .mat-date-range-input-separator { color: var(--text-dim) !important; }
+  }
+}
+
 .btn-nueva {
   height: 48px; padding: 0 20px; font-weight: 700; gap: 6px; white-space: nowrap;
   &:hover { box-shadow: 0 4px 16px var(--shadow-color) !important; }
@@ -81,6 +104,7 @@ $text-dim      : var(--text-dim);
     .stat-icon-wrap { background: rgba(255,167, 38,0.12); mat-icon { color: var(--accent-warn); } }
     .stat-value { color: var(--accent-warn); }
   }
+  &.stat-anonimas .stat-icon-wrap { background: rgba(186,104,200,0.12); mat-icon { color: var(--accent-purple); } }
 }
 
 // ── Tabla ─────────────────────────────────────────────────────
@@ -189,17 +213,28 @@ $text-dim      : var(--text-dim);
   .page-toolbar { flex-direction: column; align-items: stretch; }
   .toolbar-actions { flex-direction: column; }
   .search-field { width: 100%; }
+  .date-range-field { width: 100%; }
   .btn-label { display: none; }
   .stat-chip { max-width: 100%; }
   .col-fecha { display: none; }
 }
 
-/* ── Estilos de la nueva columna Solicitante ── */
-.solicitante-cell { display: flex; flex-direction: column; justify-content: center; gap: 4px; }
+/* ── Estilos de la nueva columna Solicitante ──
+   Un nombre sin espacios (ej. 50 letras seguidas) no se corta solo — por eso
+   el texto va en su propio <span class="solicitante-text">, separado del
+   ícono, con max-width + ellipsis. El ícono lleva flex-shrink:0 para no
+   quedar aplastado/cortado cuando el texto es más largo que la celda. */
+.solicitante-cell { display: flex; flex-direction: column; justify-content: center; gap: 4px; max-width: 200px; }
 .solicitante-name { display: flex; align-items: center; gap: 6px; font-weight: 500; color: var(--text-primary); }
 .solicitante-tel { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); }
-.sol-icon { font-size: 18px; width: 18px; height: 18px; color: var(--text-faint); }
-.sol-icon-small { font-size: 14px; width: 14px; height: 14px; color: var(--text-faint); }
+.sol-icon { font-size: 18px; width: 18px; height: 18px; color: var(--text-faint); flex-shrink: 0; }
+.sol-icon-small { font-size: 14px; width: 14px; height: 14px; color: var(--text-faint); flex-shrink: 0; }
+.solicitante-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* ── PALETA DE COLORES DE ESTADOS (SEMÁFORO) ── */
 .badge-estado {

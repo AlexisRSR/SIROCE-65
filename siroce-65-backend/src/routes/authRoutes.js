@@ -2,7 +2,7 @@
 'use strict';
 
 const { Router } = require('express');
-const { login, recuperarPassword, cambiarPassword, updateMandatoryPassword } = require('../controllers/authController');
+const { login, recuperarPassword, cambiarPassword, updateMandatoryPassword, resetPassword } = require('../controllers/authController');
 
 const router = Router();
 
@@ -34,5 +34,12 @@ router.put('/cambiar-password', cambiarPassword);
 //  porque está condicionado a cambiar la contraseña obligatoria.
 // ────────────────────────────────────────────────────────────
 router.post('/auth/update-password', updateMandatoryPassword);
+
+// ────────────────────────────────────────────────────────────
+//  POST /api/reset-password
+//  Pública (sin JWT de sesión): recibe el token temporal de
+//  recuperación enviado por correo tras un bloqueo de cuenta.
+// ────────────────────────────────────────────────────────────
+router.post('/reset-password', resetPassword);
 
 module.exports = router;

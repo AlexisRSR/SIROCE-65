@@ -4,10 +4,16 @@
 const { Router } = require('express');
 // 🔥 UNA SOLA LÍNEA importando las 4 funciones:
 const { obtenerUsuarios, crearUsuario, cambiarEstado, actualizarUsuario } = require('../controllers/usuario.controller');
-
-// const { validarJWT } = require('../middlewares/validar-jwt'); // (Si ya tienes tu middleware de seguridad)
+const { authMiddleware, validarRolAdmin } = require('../middlewares/authMiddleware');
 
 const router = Router();
+
+// 🔥 CRÍTICO: estas rutas administran cuentas (incluida la creación de ADMIN)
+// y no tenían NINGÚN middleware de seguridad — quedaban abiertas sin JWT.
+// Además, sin req.user poblado, el registro en bitácora de este módulo
+// nunca podía insertar (id_usuario es NOT NULL en la tabla `bitacora`).
+router.use(authMiddleware);
+router.use(validarRolAdmin);
 
 // Ruta para listar todos los usuarios (GET /api/usuarios)
 router.get('/', obtenerUsuarios);

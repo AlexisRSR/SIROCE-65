@@ -6,16 +6,20 @@ import { HomeComponent }        from './pages/home/home.component';
 import { LandingPageComponent } from './pages/landing-page/landing-page.component';
 import { AuthGuard }            from './core/guards/auth.guard';
 import { RoleGuard }            from './core/guards/role.guard';
+import { NoAuthGuard }          from './core/guards/no-auth.guard';
 
 // 🔥 1. IMPORTAMOS TU NUEVO COMPONENTE AQUÍ
 import { GestionUsuariosComponent } from './features/usuarios/gestion-usuarios/gestion-usuarios.component';
 
 const routes: Routes = [
-  // 🔥 Portal público (Landing Page) — ruta raíz, sin sidebar ni autenticación
+  // 🔥 Portal público (Landing Page) — ruta raíz, sin sidebar ni autenticación.
+  // NoAuthGuard: si el usuario ya tiene sesión activa, lo redirige a su
+  // dashboard en vez de mostrarle la Landing Page.
   {
-    path     : '',
-    component: LandingPageComponent,
-    pathMatch: 'full',
+    path       : '',
+    component  : LandingPageComponent,
+    pathMatch  : 'full',
+    canActivate: [NoAuthGuard],
   },
 
   {
@@ -72,19 +76,36 @@ const routes: Routes = [
       },
 
       // 📋 NUEVO: Módulo de Reportes Administrativos y Consolidados (SIROCE-65)
-      { 
-        path: 'reportes', 
-        loadChildren: () => import('./features/reportes/reportes.module').then(m => m.ReportesModule) 
+      {
+        path: 'reportes',
+        loadChildren: () => import('./features/reportes/reportes.module').then(m => m.ReportesModule)
+      },
+
+      // 🔒 NUEVO: Bitácora de Auditoría (SOLO ADMIN)
+      {
+        path: 'bitacora',
+        loadChildren: () => import('./features/bitacora/bitacora.module').then(m => m.BitacoraModule),
+        canActivate: [RoleGuard],
+        data: { roles: ['ADMIN'] }
       },
     ],
   },
   
   // Ruta de Login (Fase 4)
-  { 
-    path: 'login', 
-    loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule) 
+  // NoAuthGuard: si ya hay sesión activa, no tiene sentido ver el login de nuevo.
+  {
+    path: 'login',
+    canActivate: [NoAuthGuard],
+    loadChildren: () => import('./features/auth/auth.module').then(m => m.AuthModule)
   },
-  
+
+  // 🔥 NUEVO: Reseteo de contraseña por bloqueo de cuenta (enlace enviado por correo)
+  // Componente standalone: se carga solo, sin pasar por AuthModule.
+  {
+    path: 'reset-password',
+    loadComponent: () => import('./features/auth/reset-password/reset-password.component').then(m => m.ResetPasswordComponent),
+  },
+
   { path: '**', redirectTo: '' },
 ];
 

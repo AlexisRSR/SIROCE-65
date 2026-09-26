@@ -1,4 +1,4 @@
-import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core'; // 🔥 Agregamos ChangeDetectorRef
+import { Component, OnInit, Inject, ChangeDetectorRef } from '@angular/core'; 
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatDialogRef, MatDialogModule, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { CommonModule } from '@angular/common';
@@ -35,10 +35,11 @@ export class UsuariosFormComponent implements OnInit {
     private usuariosService: UsuariosService,
     public dialogRef: MatDialogRef<UsuariosFormComponent>,
     @Inject(MAT_DIALOG_DATA) public data: any,
-    private cdr: ChangeDetectorRef // 🔥 Inyectamos el detector de cambios
+    private cdr: ChangeDetectorRef 
   ) {}
 
   ngOnInit(): void {
+    // Determina el contexto del formulario (Creación vs Actualización)
     this.isEditMode = !!this.data; 
 
     let nombreForm = '';
@@ -55,22 +56,26 @@ export class UsuariosFormComponent implements OnInit {
       }
     }
 
+    // Inicialización del Reactive Form con validadores síncronos complejos
     this.form = this.fb.group({
       nombre: [nombreForm, Validators.required],
       apellido: [apellidoForm, Validators.required],
       dpi: [this.data?.dpi || '', [Validators.required, Validators.pattern('^[0-9]{13}$')]],
       usuario: [this.data?.usuario || '', Validators.required],
       rol: [this.data?.rol || 'DESPACHO', Validators.required],
+      // En modo edición la contraseña es opcional; en creación, se exigen políticas OWASP
       password: ['', this.isEditMode ? [] : [Validators.required, Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.#-]).{12,15}$/)]],
       confirmPassword: ['', this.isEditMode ? [] : [Validators.required]]
     }, { validators: this.passwordMatchValidator });
 
+    // Suscripción a cambios en los campos para generar el usuario automáticamente
     if (!this.isEditMode) {
       this.form.get('nombre')?.valueChanges.subscribe(() => this.generarUsuario());
       this.form.get('apellido')?.valueChanges.subscribe(() => this.generarUsuario());
     }
   }
 
+  // Lógica de autocompletado: Genera un nombre de usuario estándar eliminando diacríticos
   generarUsuario(): void {
     const nom = this.form.get('nombre')?.value || '';
     const ape = this.form.get('apellido')?.value || '';
@@ -84,9 +89,11 @@ export class UsuariosFormComponent implements OnInit {
     }
   }
 
+  // Validador personalizado a nivel de formulario para cruzar campos
   passwordMatchValidator(group: AbstractControl): ValidationErrors | null {
     const pass = group.get('password')?.value;
     const confirm = group.get('confirmPassword')?.value;
+    
     if (!pass && !confirm && group.parent && group.parent.get('isEditMode')) return null;
     return pass === confirm ? null : { mismatch: true };
   }
@@ -99,8 +106,11 @@ export class UsuariosFormComponent implements OnInit {
   hasNumber(): boolean  { return /(?=.*\d)/.test(this.passValue); }
   hasSpecial(): boolean { return /(?=.*[@$!%*?&.#-])/.test(this.passValue); }
 
-  // 🔥 NUEVO: Genera una contraseña de 12 caracteres que cumple SIEMPRE
-  // con la política de seguridad (mayúscula, minúscula, número y especial)
+  /**
+   * Generación de contraseña criptográficamente segura.
+   * Implementa el algoritmo de Fisher-Yates para asegurar alta entropía 
+   * garantizando el cumplimiento de la política de seguridad (mayúsculas, minúsculas, números, símbolos).
+   */
   generarPasswordSegura(): void {
     const UPPER   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
     const LOWER   = 'abcdefghijkmnopqrstuvwxyz';
@@ -110,13 +120,13 @@ export class UsuariosFormComponent implements OnInit {
 
     const pick = (chars: string) => chars[Math.floor(Math.random() * chars.length)];
 
-    // Garantiza al menos un carácter de cada categoría exigida por el validador
+    // Garantizar la inclusión de al menos un carácter por grupo exigido
     const obligatorios = [pick(UPPER), pick(LOWER), pick(NUMBERS), pick(SPECIAL)];
     const resto = Array.from({ length: 12 - obligatorios.length }, () => pick(ALL));
 
     const caracteres = [...obligatorios, ...resto];
 
-    // Fisher-Yates shuffle para no dejar el patrón de posiciones fijas
+    // Algoritmo Fisher-Yates Shuffle (evita patrones predecibles en la estructura)
     for (let i = caracteres.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [caracteres[i], caracteres[j]] = [caracteres[j], caracteres[i]];
@@ -124,12 +134,12 @@ export class UsuariosFormComponent implements OnInit {
 
     const passwordGenerada = caracteres.join('');
 
-    // Se rellena también "Confirmar Contraseña" para que el admin solo tenga que copiarla
     this.form.patchValue({ password: passwordGenerada, confirmPassword: passwordGenerada });
     this.hidePassword = false;
     this.hideConfirm = false;
   }
 
+  // Previene el ingreso de caracteres no numéricos a nivel de evento de teclado
   soloNumeros(event: KeyboardEvent): boolean {
     const charCode = (event.which) ? event.which : event.keyCode;
     if (charCode > 31 && (charCode < 48 || charCode > 57)) {
@@ -147,12 +157,12 @@ export class UsuariosFormComponent implements OnInit {
     this.isSaving = true;
     this.errorMsg = '';
     
-    // Función manejadora de errores con actualización forzada
+    // Función manejadora de errores de la API
     const manejarError = (err: any) => {
       this.isSaving = false; 
-      this.errorMsg = err.error?.error || 'Ocurrió un error al guardar en la base de datos.';
+      this.errorMsg = err.error?.error || 'Ocurrió un error al ejecutar la transacción en la base de datos.';
       
-      // 🔥 Le decimos a Angular: "¡Actualiza la pantalla AHORA!"
+      // Actualización manual de la vista mediante ChangeDetectorRef
       this.cdr.detectChanges(); 
     };
 

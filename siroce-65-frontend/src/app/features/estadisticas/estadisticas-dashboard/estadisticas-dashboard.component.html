@@ -73,14 +73,16 @@
     
     <!-- Fila 1: 3 Gráficas -->
     <mat-card class="chart-card col-span-1">
-      <apx-chart *ngIf="donutTiposOptions.series.length > 0; else noData"
+      <apx-chart *ngIf="hasDonutTipos; else noData"
         [series]="donutTiposOptions.series" [chart]="donutTiposOptions.chart" [labels]="donutTiposOptions.labels"
-        [title]="donutTiposOptions.title" [colors]="donutTiposOptions.colors" [theme]="donutTiposOptions.theme" [stroke]="donutTiposOptions.stroke">
+        [title]="donutTiposOptions.title" [colors]="donutTiposOptions.colors" [theme]="donutTiposOptions.theme" [stroke]="donutTiposOptions.stroke"
+        [dataLabels]="donutTiposOptions.dataLabels" [tooltip]="donutTiposOptions.tooltip" [legend]="donutTiposOptions.legend" [responsive]="donutTiposOptions.responsive"
+        [plotOptions]="donutTiposOptions.plotOptions">
       </apx-chart>
     </mat-card>
 
     <mat-card class="chart-card col-span-1">
-      <apx-chart *ngIf="splineOptions.series[0].data.length > 0; else noData"
+      <apx-chart *ngIf="hasHorasPico; else noData"
         [series]="splineOptions.series" [chart]="splineOptions.chart" [xaxis]="splineOptions.xaxis"
         [stroke]="splineOptions.stroke" [fill]="splineOptions.fill" [dataLabels]="splineOptions.dataLabels"
         [title]="splineOptions.title" [theme]="splineOptions.theme" [colors]="splineOptions.colors">
@@ -88,15 +90,17 @@
     </mat-card>
 
     <mat-card class="chart-card col-span-1">
-      <apx-chart *ngIf="donutCanceladasOptions.series.length > 0; else noData"
+      <apx-chart *ngIf="hasDonutCanceladas; else noData"
         [series]="donutCanceladasOptions.series" [chart]="donutCanceladasOptions.chart" [labels]="donutCanceladasOptions.labels"
-        [title]="donutCanceladasOptions.title" [colors]="donutCanceladasOptions.colors" [theme]="donutCanceladasOptions.theme" [stroke]="donutCanceladasOptions.stroke">
+        [title]="donutCanceladasOptions.title" [colors]="donutCanceladasOptions.colors" [theme]="donutCanceladasOptions.theme" [stroke]="donutCanceladasOptions.stroke"
+        [dataLabels]="donutCanceladasOptions.dataLabels" [tooltip]="donutCanceladasOptions.tooltip" [legend]="donutCanceladasOptions.legend" [responsive]="donutCanceladasOptions.responsive"
+        [plotOptions]="donutCanceladasOptions.plotOptions">
       </apx-chart>
     </mat-card>
 
     <!-- Fila 2: 2 Gráficas (Una ancha y una normal) -->
     <mat-card class="chart-card col-span-2">
-      <apx-chart *ngIf="barOptions.series.length > 0; else noData"
+      <apx-chart *ngIf="hasVolumenDiario; else noData"
         [series]="barOptions.series" [chart]="barOptions.chart" [xaxis]="barOptions.xaxis"
         [plotOptions]="barOptions.plotOptions" [dataLabels]="barOptions.dataLabels"
         [title]="barOptions.title" [theme]="barOptions.theme" [colors]="barOptions.colors">
@@ -104,7 +108,7 @@
     </mat-card>
 
     <mat-card class="chart-card col-span-1">
-      <apx-chart *ngIf="barZonasOptions.series.length > 0; else noData"
+      <apx-chart *ngIf="hasZonasRiesgo; else noData"
         [series]="barZonasOptions.series" [chart]="barZonasOptions.chart" [xaxis]="barZonasOptions.xaxis"
         [plotOptions]="barZonasOptions.plotOptions" [dataLabels]="barZonasOptions.dataLabels"
         [title]="barZonasOptions.title" [theme]="barZonasOptions.theme" [colors]="barZonasOptions.colors">
@@ -115,8 +119,8 @@
 
   <ng-template #noData>
     <div class="empty-chart">
-      <mat-icon>analytics</mat-icon>
-      <p>Esperando datos de la base central...</p>
+      <mat-icon>{{ isLoading ? 'hourglass_empty' : 'analytics' }}</mat-icon>
+      <p>{{ isLoading ? 'Cargando datos...' : 'No hay datos para el rango seleccionado' }}</p>
     </div>
   </ng-template>
   

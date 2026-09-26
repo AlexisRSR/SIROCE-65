@@ -163,6 +163,33 @@ $text-dim      : var(--text-dim);
 .badge-inactivo    { background: rgba(189,189,189,0.12); color: var(--accent-gray); border: 1px solid rgba(189,189,189,0.25); }
 .badge-default     { background: var(--bg-badge-neutral); color: $text-dim; border: 1px solid $border; }
 
+// Chip "Material Gastable" — plateado neutro, sin relación con los badges de estado/tipo.
+// 🔥 OJO: en este proyecto el tema OSCURO es el que vive en :root (por defecto);
+// el CLARO es la excepción, activada con <html data-theme="light"> (ver styles.scss).
+// Por eso los valores base de abajo YA son los de modo oscuro, y solo se necesita
+// una excepción explícita para el claro — no al revés.
+.badge-gastable {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  background-color: rgba(158, 158, 158, 0.2);
+  color: var(--accent-gray); // Oscuro: #bdbdbd — gris claro, buen contraste sobre la tarjeta oscura
+  border: 1px solid rgba(158, 158, 158, 0.35);
+}
+
+// A11y (tema claro): var(--accent-gray) baja a #757575 en claro, insuficiente
+// contra este fondo gris muy tenue. Se refuerza con var(--text-dim), que este
+// mismo archivo de tema ya documenta con ~8.9:1 de contraste en modo claro.
+:host-context([data-theme='light']) {
+  .badge-gastable {
+    color: var(--text-dim);
+  }
+}
+
 // ── Botones de acción ─────────────────────────────────────────
 .btn-editar  { color: var(--accent-info) !important; &:hover { background-color: rgba(100,181,246,0.10) !important; } }
 .btn-eliminar { color: var(--accent-danger-soft) !important; &:hover { background-color: rgba(239,83,80,0.10) !important; }

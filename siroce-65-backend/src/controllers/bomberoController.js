@@ -5,14 +5,18 @@
 // a una Persona y su perfil de Bombero en una sola transacción.
 'use strict';
 
+const { Op, fn, col, where } = require('sequelize');
 const { sequelize }   = require('../config/database');
 const {
   Bombero,
   Persona,
   GradoBombero,
   EstadoBombero,
+  CargoBombero,
   Usuario,
+  DetalleBombero,
 } = require('../models');
+const { registrarBitacora } = require('../helpers/bitacoraHelper');
 
 // ════════════════════════════════════════════════════════════
 //  Helpers de respuesta estandarizados
@@ -20,8 +24,21 @@ const {
 const ok   = (res, data, status = 200)  => res.status(status).json({ ok: true,  data });
 const fail = (res, message, status = 500) => res.status(status).json({ ok: false, message });
 
+// 🔥 Restricción de unicidad lógica del DPI (columna TRIM-eada para no dejar
+// pasar espacios en los extremos). excludeId permite que una persona se guarde
+// a sí misma sin auto-bloquearse al actualizar.
+const buscarDuplicadoPorDPI = async (dpi, excludeId = null) => {
+  if (!dpi || !String(dpi).trim()) return null;
+  const dpiNormalizado = String(dpi).trim();
+  const condicionDpi = where(fn('TRIM', col('DPI')), dpiNormalizado);
+  const condiciones = excludeId
+    ? { [Op.and]: [condicionDpi, { ID_PERSONA: { [Op.ne]: excludeId } }] }
+    : condicionDpi;
+  return Persona.findOne({ where: condiciones });
+};
+
 // ── Include reutilizable para Bombero completo ────────────────
-// Trae: datos personales → datos de usuario → grado → estado operativo
+// Trae: datos personales → datos de usuario → grado → estado operativo → cargo
 const INCLUDE_BOMBERO_COMPLETO = [
   {
     model  : Persona,
@@ -36,6 +53,7 @@ const INCLUDE_BOMBERO_COMPLETO = [
   },
   { model: GradoBombero,  as: 'grado'  },
   { model: EstadoBombero, as: 'estado' },
+  { model: CargoBombero,  as: 'cargo'  }, // 🔥 3NF: reemplaza el antiguo CARGO de texto libre
 ];
 
 
@@ -102,6 +120,11 @@ const createPersona = async (req, res) => {
       return fail(res, 'Los campos NOMBRE y APELLIDO son obligatorios.', 400);
     }
 
+    const duplicadoDPI = await buscarDuplicadoPorDPI(DPI);
+    if (duplicadoDPI) {
+      return fail(res, 'Ya existe un bombero registrado con este número de DPI.', 400);
+    }
+
     const nuevaPersona = await Persona.create({
       ID_USUARIO, NOMBRE, APELLIDO, DPI, FECHA_NACIMIENTO, TELEFONO, DIRECCION,
     });
@@ -122,6 +145,13 @@ const updatePersona = async (req, res) => {
   try {
     const persona = await Persona.findByPk(req.params.id);
     if (!persona) return fail(res, `Persona con ID ${req.params.id} no encontrada.`, 404);
+
+    if (req.body.DPI !== undefined) {
+      const duplicadoDPI = await buscarDuplicadoPorDPI(req.body.DPI, persona.ID_PERSONA);
+      if (duplicadoDPI) {
+        return fail(res, 'Ya existe un bombero registrado con este número de DPI.', 400);
+      }
+    }
 
     await persona.update(req.body);
     return ok(res, persona);
@@ -241,6 +271,10 @@ const createBombero = async (req, res) => {
       include: INCLUDE_BOMBERO_COMPLETO,
     });
 
+    // 📝 REGISTRO EN BITÁCORA
+    const idUsuarioToken = req.usuario?.id_usuario || req.user?.id_usuario || null;
+    await registrarBitacora(idUsuarioToken, `[BOMBEROS] - Creó el perfil de bombero para ${personaExiste.NOMBRE} ${personaExiste.APELLIDO}`);
+
     return ok(res, bomberoCompleto, 201);
   } catch (error) {
     console.error('[BomberoCtrl.createBombero]', error.message);
@@ -273,6 +307,12 @@ const createBomberoCompleto = async (req, res) => {
       return fail(res, 'La persona debe tener NOMBRE y APELLIDO.', 400);
     }
 
+    const duplicadoDPI = await buscarDuplicadoPorDPI(persona.DPI);
+    if (duplicadoDPI) {
+      await t.rollback();
+      return fail(res, 'Ya existe un bombero registrado con este número de DPI.', 400);
+    }
+
     // 1. Crear la Persona dentro de la transacción
     const nuevaPersona = await Persona.create(persona, { transaction: t });
 
@@ -284,6 +324,10 @@ const createBomberoCompleto = async (req, res) => {
 
     // 3. Confirmar la transacción
     await t.commit();
+
+    // 📝 REGISTRO EN BITÁCORA
+    const idUsuarioToken = req.usuario?.id_usuario || req.user?.id_usuario || null;
+    await registrarBitacora(idUsuarioToken, `[BOMBEROS] - Creó el bombero ${nuevaPersona.NOMBRE} ${nuevaPersona.APELLIDO}`);
 
     return ok(res, { persona: nuevaPersona, bombero: nuevoBombero }, 201);
   } catch (error) {
@@ -306,7 +350,8 @@ const updateBombero = async (req, res) => {
     // 🔥 ACTUALIZACIÓN EXPLÍCITA Y SEGURA
     // Le decimos exactamente qué campos queremos que sobreescriba en la BD.
     bombero.ID_GRADO = req.body.ID_GRADO !== undefined ? req.body.ID_GRADO : bombero.ID_GRADO;
-    bombero.CARGO = req.body.CARGO !== undefined ? req.body.CARGO : bombero.CARGO; // <--- AQUÍ ESTÁ LA MAGIA
+    // 🔥 3NF: ID_CARGO reemplaza al antiguo CARGO de texto libre
+    bombero.ID_CARGO = req.body.ID_CARGO !== undefined ? req.body.ID_CARGO : bombero.ID_CARGO;
     bombero.ID_ESTADO_B = req.body.ID_ESTADO_B !== undefined ? req.body.ID_ESTADO_B : bombero.ID_ESTADO_B;
     bombero.FECHA_INGRESO = req.body.FECHA_INGRESO !== undefined ? req.body.FECHA_INGRESO : bombero.FECHA_INGRESO;
     bombero.TURNO = req.body.TURNO !== undefined ? req.body.TURNO : bombero.TURNO;
@@ -318,6 +363,13 @@ const updateBombero = async (req, res) => {
     const bomberoActualizado = await Bombero.findByPk(bombero.ID_BOMBERO, {
       include: INCLUDE_BOMBERO_COMPLETO,
     });
+
+    // 📝 REGISTRO EN BITÁCORA
+    const idUsuarioToken = req.usuario?.id_usuario || req.user?.id_usuario || null;
+    const nombreBombero = bomberoActualizado.persona
+      ? `${bomberoActualizado.persona.NOMBRE} ${bomberoActualizado.persona.APELLIDO}`
+      : `#${bomberoActualizado.ID_BOMBERO}`;
+    await registrarBitacora(idUsuarioToken, `[BOMBEROS] - Actualizó datos del bombero ${nombreBombero}`);
 
     return ok(res, bomberoActualizado);
   } catch (error) {
@@ -332,10 +384,28 @@ const updateBombero = async (req, res) => {
  */
 const deleteBombero = async (req, res) => {
   try {
-    const bombero = await Bombero.findByPk(req.params.id);
+    const bombero = await Bombero.findByPk(req.params.id, {
+      include: [{ model: Persona, as: 'persona' }],
+    });
     if (!bombero) return fail(res, `Bombero con ID ${req.params.id} no encontrado.`, 404);
 
+    const nombreBombero = bombero.persona
+      ? `${bombero.persona.NOMBRE} ${bombero.persona.APELLIDO}`
+      : `#${bombero.ID_BOMBERO}`;
+
+    // 🔥 Integridad referencial: no se borra un bombero con historial operativo
+    // (participación en emergencias vía detalle_bombero) — se debe dar de baja, no eliminar.
+    const tieneHistorial = await DetalleBombero.count({ where: { id_bombero: bombero.ID_BOMBERO } });
+    if (tieneHistorial > 0) {
+      return fail(res, 'No se puede eliminar: tiene historial operativo. Cámbielo a estado De Baja.', 400);
+    }
+
     await bombero.destroy();
+
+    // 📝 REGISTRO EN BITÁCORA
+    const idUsuarioToken = req.usuario?.id_usuario || req.user?.id_usuario || null;
+    await registrarBitacora(idUsuarioToken, `[BOMBEROS] - Eliminó el bombero ${nombreBombero}`);
+
     return ok(res, { message: `Bombero ID ${req.params.id} eliminado correctamente.` });
   } catch (error) {
     console.error('[BomberoCtrl.deleteBombero]', error.message);
@@ -368,6 +438,16 @@ const getEstadosBombero = async (req, res) => {
   }
 };
 
+/** GET /api/cargos-bombero — Lista todos los cargos/funciones disponibles (🔥 3NF) */
+const getCargosBombero = async (req, res) => {
+  try {
+    const cargos = await CargoBombero.findAll({ order: [['CARGO', 'ASC']] });
+    return ok(res, cargos);
+  } catch (error) {
+    return fail(res, 'Error al obtener los cargos de bombero.');
+  }
+};
+
 
 // ════════════════════════════════════════════════════════════
 //  EXPORTS
@@ -390,4 +470,5 @@ module.exports = {
   // Catálogos
   getGrados,
   getEstadosBombero,
+  getCargosBombero,
 };

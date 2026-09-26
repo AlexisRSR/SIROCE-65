@@ -7,21 +7,10 @@
 
 const cron = require('node-cron');
 const { Op } = require('sequelize');
-const nodemailer = require('nodemailer');
-const { Servicio, TipoServicio } = require('../models');
+const { Servicio, TipoServicio, Paciente } = require('../models');
+const { enviarCorreo } = require('../Config/mailer');
 
-// Configuración del transporte SMTP
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT || '465'),
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER || 'tu_correo_de_sistema@gmail.com',
-    pass: process.env.EMAIL_PASS || 'tu_contrasena_de_aplicacion',
-  },
-});
-
-const correoOficial = 'siroce65.notificaciones@gmail.com';
+const correoOficial = process.env.CORREO_ADMINISTRADOR;
 
 /**
  * Orquesta la recopilación de datos y envío del informe semanal
@@ -41,7 +30,10 @@ const generarYEnviarCorteSemanal = async () => {
           [Op.between]: [haceSieteDias.toISOString().split('T')[0], hoy.toISOString().split('T')[0]]
         }
       },
-      include: [{ model: TipoServicio, as: 'tipoServicio' }]
+      include: [
+        { model: TipoServicio, as: 'tipoServicio' },
+        { model: Paciente, as: 'pacientes', required: false }, // 🔥 3NF: datos clínicos ahora en tb_pacientes
+      ]
     });
 
     // ── 1. CÁLCULO DE MÉTRICAS (KPIs) ──────────────────────────
@@ -56,18 +48,21 @@ const generarYEnviarCorteSemanal = async () => {
       const tipo = s.tipoServicio?.TIPO_SERVICIO || 'Otros / No especificado';
       conteoPorTipo[tipo] = (conteoPorTipo[tipo] || 0) + 1;
 
-      // Pacientes atendidos (si el campo tiene texto)
-      if (s.NOMBRE_PACIENTE && s.NOMBRE_PACIENTE.trim() !== '') {
-        totalPacientes++;
-      }
-      // Traslados clínicos (si el campo tiene texto y no dice "ninguno")
-      if (s.LUGAR_TRASLADO && s.LUGAR_TRASLADO.trim() !== '' && s.LUGAR_TRASLADO.toLowerCase() !== 'ninguno') {
-        totalTraslados++;
-      }
-      // Fallecidos (si el campo es SI)
-      if (s.FALLECIDO && (s.FALLECIDO.toUpperCase() === 'SI' || s.FALLECIDO.toUpperCase() === 'SÍ')) {
-        totalFallecidos++;
-      }
+      // 🔥 3NF: cada víctima real atendida es una fila en tb_pacientes (s.pacientes)
+      (s.pacientes || []).forEach((p) => {
+        // Pacientes atendidos (si el campo tiene texto)
+        if (p.NOMBRE_PACIENTE && p.NOMBRE_PACIENTE.trim() !== '') {
+          totalPacientes++;
+        }
+        // Traslados clínicos (si el campo tiene texto y no dice "ninguno")
+        if (p.LUGAR_TRASLADO && p.LUGAR_TRASLADO.trim() !== '' && p.LUGAR_TRASLADO.toLowerCase() !== 'ninguno') {
+          totalTraslados++;
+        }
+        // Fallecidos (si el campo es SI)
+        if (p.FALLECIDO && (p.FALLECIDO.toUpperCase() === 'SI' || p.FALLECIDO.toUpperCase() === 'SÍ')) {
+          totalFallecidos++;
+        }
+      });
     });
 
     // ── 2. CONSTRUCCIÓN DE TABLAS HTML ────────────────────────
@@ -145,15 +140,13 @@ const generarYEnviarCorteSemanal = async () => {
       </div>
     `;
 
-    const mailOptions = {
-      from: `"SIROCE-65 Inteligencia" <${transporter.options.auth.user}>`,
-      to: correoOficial,
-      subject: `📊 RESUMEN OPERATIVO: ${totalEmergencias} servicios cubiertos`,
-      html: htmlBody
-    };
-
     console.log(`[CronJob] Enviando consolidado (BI) por correo a: ${correoOficial}...`);
-    await transporter.sendMail(mailOptions);
+    await enviarCorreo({
+      para: correoOficial,
+      asunto: `📊 RESUMEN OPERATIVO: ${totalEmergencias} servicios cubiertos`,
+      html: htmlBody,
+      nombreRemitente: 'SIROCE-65 Inteligencia',
+    });
     console.log('[CronJob] ✅ Corte semanal enviado con éxito.');
 
   } catch (error) {

@@ -5,7 +5,7 @@
 'use strict';
 
 const { Router } = require('express');
-const authMiddleware = require('../middlewares/authMiddleware');
+const { authMiddleware } = require('../middlewares/authMiddleware');
 const ctrl = require('../controllers/bomberoController');
 
 const router = Router();
@@ -18,8 +18,10 @@ router.use(authMiddleware);
 // ════════════════════════════════════════════════════════════
 //  GET /api/grados            → lista de grados (Bombero, Cabo, Sargento...)
 //  GET /api/estados-bombero    → lista de estados (Activo, Inactivo...)
+//  GET /api/cargos-bombero     → lista de cargos/funciones (🔥 3NF, reemplaza el texto libre)
 router.get('/grados',          ctrl.getGrados);
 router.get('/estados-bombero',  ctrl.getEstadosBombero);
+router.get('/cargos-bombero',   ctrl.getCargosBombero);
 
 // ════════════════════════════════════════════════════════════
 //  PERSONAS — TB_PERSONAS

@@ -1,13 +1,13 @@
 // controllers/mailerController.js
-const transporter = require('../config/mailer');
+const { enviarCorreo } = require('../Config/mailer');
 
 const enviarCorreoPrueba = async (req, res) => {
   try {
     // Configuramos el mensaje
-    const info = await transporter.sendMail({
-      from: `"Estación SIROCE-65" <${process.env.EMAIL_USER}>`, // Remitente oficial
-      to: process.env.EMAIL_USER, // Nos lo enviamos a nosotros mismos para probar
-      subject: "🚒 Prueba Exitosa - Sistema SIROCE-65", 
+    const info = await enviarCorreo({
+      para: process.env.SMTP_REMITENTE, // Nos lo enviamos a nosotros mismos para probar
+      asunto: "🚒 Prueba Exitosa - Sistema SIROCE-65",
+      nombreRemitente: 'Estación SIROCE-65',
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
           <h2 style="color: #B71C1C;">LXV Compañía San Rafael Pie de la Cuesta</h2>
@@ -20,7 +20,7 @@ const enviarCorreoPrueba = async (req, res) => {
       `,
     });
 
-    console.log("Mensaje enviado: %s", info.messageId);
+    console.log("Mensaje enviado: %s", info.messageId || '(simulado)');
     return res.status(200).json({ ok: true, message: 'Correo de prueba enviado con éxito' });
 
   } catch (error) {

@@ -2,6 +2,7 @@
 // ── Controlador del Catálogo de Tipos de Emergencia ──────────
 'use strict';
 
+const { Op, fn, col, where } = require('sequelize');
 const { TipoServicio } = require('../models');
 
 // 📝 Importamos nuestro Helper de Auditoría (Bitácora)
@@ -9,6 +10,18 @@ const { registrarBitacora } = require('../helpers/bitacoraHelper');
 
 const ok   = (res, data, status = 200)    => res.status(status).json({ ok: true,  data });
 const fail = (res, message, status = 500) => res.status(status).json({ ok: false, message });
+
+// 🔥 Restricción de unicidad lógica: compara el nombre sin importar mayúsculas/
+// minúsculas ni espacios en los extremos (' Maternidad ' === 'maternidad').
+// excludeId permite que un registro se guarde a sí mismo sin auto-bloquearse.
+const buscarDuplicadoPorNombre = async (nombre, excludeId = null) => {
+  const nombreNormalizado = nombre.trim().toLowerCase();
+  const condicionNombre = where(fn('LOWER', fn('TRIM', col('TIPO_SERVICIO'))), nombreNormalizado);
+  const condiciones = excludeId
+    ? { [Op.and]: [condicionNombre, { ID_TIPO_S: { [Op.ne]: excludeId } }] }
+    : condicionNombre;
+  return TipoServicio.findOne({ where: condiciones });
+};
 
 const getTiposServicio = async (req, res) => {
   try {
@@ -36,6 +49,12 @@ const createTipoServicio = async (req, res) => {
     const { nombre, descripcion, prioridad, categoria } = req.body;
     if (!nombre) return fail(res, 'El nombre del incidente es obligatorio.', 400);
     if (!descripcion || !descripcion.trim()) return fail(res, 'La descripción del incidente es obligatoria.', 400);
+
+    const duplicado = await buscarDuplicadoPorNombre(nombre);
+    if (duplicado) {
+      return fail(res, 'Ya existe un tipo de incidente con este nombre en el catálogo.', 400);
+    }
+
     const nuevoTipo = await TipoServicio.create({
       TIPO_SERVICIO: nombre, CATEGORIA: categoria || 'Emergencia', DESCRIPCION: descripcion || null, PRIORIDAD: prioridad || 'Media'
     });
@@ -56,6 +75,14 @@ const updateTipoServicio = async (req, res) => {
     if (!tipo) return fail(res, `Tipo de incidente con ID ${req.params.id} no encontrado.`, 404);
     const { nombre, descripcion, prioridad, categoria } = req.body;
     if (!descripcion || !descripcion.trim()) return fail(res, 'La descripción del incidente es obligatoria.', 400);
+
+    if (nombre !== undefined && nombre !== null && String(nombre).trim() !== '') {
+      const duplicado = await buscarDuplicadoPorNombre(nombre, tipo.ID_TIPO_S);
+      if (duplicado) {
+        return fail(res, 'Ya existe un tipo de incidente con este nombre en el catálogo.', 400);
+      }
+    }
+
     await tipo.update({
       TIPO_SERVICIO: nombre !== undefined ? nombre : tipo.TIPO_SERVICIO, CATEGORIA: categoria !== undefined ? categoria : tipo.CATEGORIA, DESCRIPCION: descripcion !== undefined ? descripcion : tipo.DESCRIPCION, PRIORIDAD: prioridad !== undefined ? prioridad : tipo.PRIORIDAD
     });

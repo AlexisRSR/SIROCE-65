@@ -32,11 +32,9 @@ const TipoServicio = sequelize.define(
       allowNull   : true,
       defaultValue: 'Media',
     },
-    // 🔥 NUEVO: Relaciona este incidente con el vehículo ideal
-    ID_TIPO_V: {
-      type     : DataTypes.INTEGER,
-      allowNull: true,
-    }
+    // 🔥 3NF: ID_TIPO_V se eliminó de tb_tipo_servicios (ALTER TABLE ... DROP COLUMN).
+    // No declarar el atributo aquí evita que Sequelize intente leer/escribir
+    // una columna que ya no existe en esta tabla.
   },
   {
     tableName      : 'TB_TIPO_SERVICIOS',

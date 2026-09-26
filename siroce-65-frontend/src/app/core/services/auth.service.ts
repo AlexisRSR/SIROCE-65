@@ -1,8 +1,9 @@
-import { Injectable }              from '@angular/core';
+import { Injectable, signal }      from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Router }                  from '@angular/router';
 import { Observable, throwError }  from 'rxjs';
 import { tap, catchError }         from 'rxjs/operators';
+import { environment } from '../../../environments/environment'; 
 
 export interface LoginCredentials {
   nombre_usuario: string;
@@ -13,10 +14,10 @@ export interface LoginResponse {
   ok            : boolean;
   access_token? : string;
   expires_in?   : number;
-  rol?          : string; // 'ADMIN' | 'OPERADOR'
+  rol?          : string; 
   nombre_usuario?: string;
   requiere_cambio?: boolean;
-  // 🔥 NUEVO: Presentes cuando el backend exige cambio de contraseña obligatorio (sin emitir JWT)
+  // Presente cuando el backend exige cambio de contraseña obligatorio (sin emitir JWT)
   requirePasswordChange?: boolean;
   id_usuario?   : number;
   message?      : string;
@@ -32,19 +33,29 @@ const LS = {
 @Injectable({ providedIn: 'root' })
 export class AuthService {
 
-  // Conexión directa a la API en el puerto 3000
-  private readonly API = 'http://localhost:3000/api';
+  private readonly API = environment.apiUrl;
   
-  // 🔥 NUEVO: Variable privada para retener la contraseña temporal en memoria
+  // Retención temporal de credenciales en memoria para flujos de validación
   private tempPassword = '';
+
+  // Control de estado de inicialización de sesión utilizando Angular Signals.
+  // Evita el parpadeo de rutas (flicker) al recargar la aplicación.
+  readonly isAuthInitializing = signal<boolean>(true);
 
   constructor(
     private http  : HttpClient,
     private router: Router,
-  ) {}
+  ) {
+    this.initAuthState();
+  }
+
+  // Inicialización del estado de autenticación. Preparado para validaciones
+  // asíncronas futuras contra el backend sin alterar la arquitectura base.
+  private initAuthState(): void {
+    this.isAuthInitializing.set(false);
+  }
 
   login(credentials: LoginCredentials): Observable<LoginResponse> {
-    // 🔥 NUEVO: Capturamos la contraseña justo en el momento del login
     this.tempPassword = credentials.password; 
 
     return this.http
@@ -59,7 +70,6 @@ export class AuthService {
           }
         }),
         catchError((error: HttpErrorResponse) => {
-          // Si el login falla, limpiamos la contraseña temporal
           this.clearTempPassword();
           return throwError(() => error);
         })
@@ -78,10 +88,17 @@ export class AuthService {
       .pipe(catchError((error: HttpErrorResponse) => throwError(() => error)));
   }
 
-  // 🔥 NUEVO: Cambio de contraseña obligatorio (flujo sin sesión/JWT activo)
+  // Transacción para actualización de contraseña requerida por política de seguridad
   updateMandatoryPassword(id_usuario: number, newPassword: string): Observable<any> {
     return this.http
       .post<any>(`${this.API}/auth/update-password`, { id_usuario, newPassword })
+      .pipe(catchError((error: HttpErrorResponse) => throwError(() => error)));
+  }
+
+  // Restablecimiento de contraseña validado mediante token de un solo uso
+  resetPassword(token: string, newPassword: string): Observable<any> {
+    return this.http
+      .post<any>(`${this.API}/reset-password`, { token, newPassword })
       .pipe(catchError((error: HttpErrorResponse) => throwError(() => error)));
   }
 
@@ -90,7 +107,7 @@ export class AuthService {
     localStorage.removeItem(LS.ROL);
     localStorage.removeItem(LS.USERNAME);
     localStorage.removeItem(LS.REQUIERE_CAMBIO); 
-    this.clearTempPassword(); // 🔥 Limpiamos la memoria al salir
+    this.clearTempPassword();
     this.router.navigate(['/login']);
   }
 
@@ -115,7 +132,6 @@ export class AuthService {
     return localStorage.getItem(LS.REQUIERE_CAMBIO) === 'true';
   }
 
-  // 🔥 NUEVOS MÉTODOS: Para obtener y limpiar la contraseña temporal
   getTempPassword(): string {
     return this.tempPassword;
   }

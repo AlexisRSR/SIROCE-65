@@ -15,7 +15,7 @@
     </button>
   </div>
 
-  <mat-dialog-content class="if-content">
+  <mat-dialog-content class="if-content" #scrollContainer>
     <mat-progress-bar *ngIf="isSaving" mode="indeterminate" class="if-progress"></mat-progress-bar>
     <div class="if-error" *ngIf="errorMsg" role="alert">
       <mat-icon>error_outline</mat-icon><span>{{ errorMsg }}</span>
@@ -31,12 +31,12 @@
       <div class="form-row" style="display: flex; gap: 15px;">
         
         <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
-          <mat-label>Clasificación General*</mat-label>
-          <mat-select formControlName="tipoInsumo" (selectionChange)="onTipoChange($event.value)">
+          <mat-label>Clasificación General</mat-label>
+          <mat-select formControlName="id_tipo_insumo" (selectionChange)="onTipoChange($event.value)">
             <mat-select-trigger>
-              <span class="select-trigger-wrap" *ngIf="f['tipoInsumo'].value" style="display: flex; align-items: center; gap: 8px;">
+              <span class="select-trigger-wrap" *ngIf="f['id_tipo_insumo'].value" style="display: flex; align-items: center; gap: 8px;">
                 <mat-icon class="trigger-icon" [style.color]="getTipoColorActivo()">{{ getTipoIconActivo() }}</mat-icon>
-                <span>{{ f['tipoInsumo'].value }}</span>
+                <span>{{ getTipoLabelActivo() }}</span>
               </span>
             </mat-select-trigger>
             <mat-option *ngFor="let t of TIPOS" [value]="t.value" style="height: auto; padding: 12px 16px;">
@@ -46,12 +46,12 @@
               </div>
             </mat-option>
           </mat-select>
-          <mat-error *ngIf="f['tipoInsumo'].hasError('required')">Requerido.</mat-error>
+          <mat-error *ngIf="f['id_tipo_insumo'].hasError('required')">Requerido.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field" style="flex: 2;">
-          <mat-label>Nombre del elemento*</mat-label>
-          <mat-select formControlName="nombre" (selectionChange)="onNombreChange($event.value)" [disabled]="!f['tipoInsumo'].value">
+          <mat-label>Nombre del elemento</mat-label>
+          <mat-select formControlName="nombre" (selectionChange)="onNombreChange($event.value)" [disabled]="!f['id_tipo_insumo'].value">
             <mat-option *ngFor="let n of nombresDisponibles" [value]="n.nombre">
               {{ n.nombre }}
             </mat-option>
@@ -64,7 +64,7 @@
 
       <div class="form-row" *ngIf="f['nombre'].value === 'Otro'" style="margin-bottom: 15px;">
         <mat-form-field appearance="outline" class="form-field full-width">
-          <mat-label>Especifique el nombre del nuevo recurso*</mat-label>
+          <mat-label>Especifique el nombre del nuevo recurso</mat-label>
           <input matInput formControlName="nombreOtro" placeholder="Ej. Camilla rígida, Lámpara..." autocomplete="off">
           <mat-icon matSuffix class="field-icon" style="color: #ffb74d">edit_note</mat-icon>
           <mat-error *ngIf="f['nombreOtro'].hasError('required')">Debe escribir el nombre.</mat-error>
@@ -82,28 +82,29 @@
         </mat-form-field>
       </div>
 
-      <ng-container *ngIf="f['tipoInsumo'].value === 'Herramienta' || f['tipoInsumo'].value === 'EPP'">
+      <!-- 🔥 AQUÍ ESTABA EL ERROR: Ya validamos correctamente por el número de ID -->
+      <ng-container *ngIf="f['id_tipo_insumo']?.value === 4 || f['id_tipo_insumo']?.value === 2">
         <p class="section-label" style="margin-top: 10px; margin-bottom: 10px; font-size: 12px; color: #ffb74d;">
           <mat-icon class="section-icon" style="font-size: 16px; width: 16px; height: 16px; color: #ffb74d;">qr_code_scanner</mat-icon>
           Datos de Trazabilidad (Obligatorios)
         </p>
         <div class="form-row" style="display: flex; gap: 15px; margin-bottom: 5px;">
           <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
-            <mat-label>Marca*</mat-label>
+            <mat-label>Marca</mat-label>
             <input matInput formControlName="marca" placeholder="Ej. 3M, Holmatro..." autocomplete="off">
             <mat-error *ngIf="f['marca'].hasError('required')">Obligatorio.</mat-error>
             <mat-error *ngIf="f['marca'].hasError('pattern')">Caracteres no válidos.</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
-            <mat-label>Modelo*</mat-label>
+            <mat-label>Modelo</mat-label>
             <input matInput formControlName="modelo" placeholder="Ej. TR100..." autocomplete="off">
             <mat-error *ngIf="f['modelo'].hasError('required')">Obligatorio.</mat-error>
             <mat-error *ngIf="f['modelo'].hasError('pattern')">Caracteres no válidos.</mat-error>
           </mat-form-field>
 
           <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
-            <mat-label>No. de Serie*</mat-label>
+            <mat-label>No. de Serie</mat-label>
             <input matInput formControlName="numeroSerie" placeholder="Ej. SN-98765" autocomplete="off">
             <mat-error *ngIf="f['numeroSerie'].hasError('required')">Obligatorio.</mat-error>
             <mat-error *ngIf="f['numeroSerie'].hasError('pattern')">Caracteres no válidos.</mat-error>
@@ -121,16 +122,16 @@
       <div class="form-row" style="display: flex; gap: 15px;">
         
         <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
-          <mat-label>Cantidad en stock*</mat-label>
+          <mat-label>Cantidad en stock</mat-label>
           <input matInput type="number" formControlName="stock" placeholder="0" min="0" max="99999" (keydown)="bloquearCaracteres($event)">
           <span matSuffix class="unit-suffix">unidades</span>
-          <mat-hint>Valores &lt; 10 detonan alerta</mat-hint>
+          <mat-hint>Valores &lt; {{ umbralActual }} detonan alerta</mat-hint>
           <mat-error *ngIf="f['stock'].hasError('required')">Obligatorio.</mat-error>
           <mat-error *ngIf="f['stock'].hasError('max')">Máx. 99,999 unidades.</mat-error>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field" style="flex: 1;">
-          <mat-label>Estado operativo*</mat-label>
+          <mat-label>Estado operativo</mat-label>
           <mat-select formControlName="estado">
             <mat-select-trigger>
               <span class="select-trigger-wrap" *ngIf="f['estado'].value">
@@ -145,6 +146,7 @@
               </div>
             </mat-option>
           </mat-select>
+          <mat-hint>Sugerido automáticamente según el stock; ajústalo si aplica</mat-hint>
         </mat-form-field>
       </div>
 

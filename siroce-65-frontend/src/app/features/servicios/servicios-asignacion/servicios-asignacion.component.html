@@ -106,17 +106,36 @@
               <div class="option-body">
                 <p class="opt-title">{{ b.persona?.NOMBRE }} {{ b.persona?.APELLIDO }}</p>
                 <p class="opt-sub">
-                  <span style="color: #90caf9; font-weight: 500; font-size: 13px;">{{ getCargoBombero(b) }}</span>
+                  <span style="color: #90caf9; font-weight: 500; font-size: 13px;">Especialidad: {{ getCargoBombero(b) }}</span>
                   <span style="opacity: 0.6;"> • {{ b.grado?.GRADO || 'Sin grado' }}</span>
                 </p>
               </div>
               <!-- Si está ocupado pinta etiqueta roja, sino la normal -->
               <span class="opt-estado" [ngClass]="isBomberoOcupado(b) ? 'estado-fuera' : getEstadoBomberoClass(getEstadoBombero(b))">
-                {{ isBomberoOcupado(b) ? 'Atendiendo Emergencia' : getEstadoBombero(b) }}
+                {{ isPiloto(b.ID_BOMBERO) ? 'Piloto Asignado' : (isBomberoOcupado(b) ? 'Atendiendo Emergencia' : getEstadoBombero(b)) }}
               </span>
             </div>
           </mat-list-option>
         </mat-selection-list>
+
+        <!-- 🔥 Selector de Piloto: fuera del mat-list-option a propósito, para no competir
+             por el clic con el toggle de selección de Angular Material. Solo lista a
+             quienes ya fueron marcados arriba como personal destacado. -->
+        <mat-form-field appearance="outline" class="sa-piloto-field" *ngIf="!isLoadingBomberos && bomberos.length > 0">
+          <mat-label>Seleccione al Piloto</mat-label>
+          <mat-select [value]="selectedPilotoId" [disabled]="assignedBomberoIds.length === 0" (selectionChange)="onPilotoSelectChange($event.value)">
+            <mat-option [value]="null">-- Sin piloto asignado --</mat-option>
+            <mat-option *ngFor="let b of bomberosAsignadosParaPiloto" [value]="b.ID_BOMBERO">
+              {{ b.persona?.NOMBRE }} {{ b.persona?.APELLIDO }}
+            </mat-option>
+          </mat-select>
+          <mat-icon matSuffix class="field-icon">emoji_people</mat-icon>
+          <mat-hint *ngIf="assignedBomberoIds.length === 0">Selecciona primero al personal destacado arriba.</mat-hint>
+          <mat-hint *ngIf="assignedBomberoIds.length > 0 && !hayCandidatoAPiloto" class="sa-piloto-hint-required">
+            ⚠️ Debe incluir al menos a un Piloto / Conductor en el personal en turno.
+          </mat-hint>
+          <mat-hint *ngIf="assignedBomberoIds.length > 0 && hayCandidatoAPiloto && !selectedPilotoId" class="sa-piloto-hint-required">Obligatorio: sin piloto no se puede despachar.</mat-hint>
+        </mat-form-field>
       </mat-tab>
     </mat-tab-group>
   </mat-dialog-content>
@@ -125,7 +144,10 @@
     <button mat-button class="btn-cancel" type="button" (click)="onCancelar()" [disabled]="isDespachanando">
       <mat-icon>close</mat-icon> Cancelar
     </button>
-    <button mat-raised-button color="primary" class="btn-despachar" type="button" (click)="onDespachar()" [disabled]="isDespachanando">
+    <button mat-raised-button color="primary" class="btn-despachar" type="button" (click)="onDespachar()"
+            [disabled]="isDespachanando || !selectedPilotoId"
+            [matTooltip]="!selectedPilotoId ? 'Selecciona al Piloto de la unidad para poder despachar' : ''"
+            [matTooltipDisabled]="!!selectedPilotoId" matTooltipPosition="above">
       <mat-icon *ngIf="!isDespachanando">local_fire_department</mat-icon>
       <mat-icon *ngIf="isDespachanando" class="spin-icon">sync</mat-icon>
       <span *ngIf="!isDespachanando && totalSeleccionados === 0">Despachar</span>

@@ -3,7 +3,7 @@
 
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
-const transporter = require('../config/mailer');
+const { enviarCorreo } = require('../Config/mailer');
 
 const { Usuario, Rol, Persona } = require('../models');
 
@@ -15,35 +15,27 @@ const BLOQUEO_DURACION_MS   = 5 * 60 * 1000; // 5 minutos
 const MENSAJE_CREDENCIALES_INVALIDAS = 'Usuario y/o contraseña incorrecta.';
 
 // ────────────────────────────────────────────────────────────
+//  Sesión operativa: 12h cubre un turno completo de la estación
+// ────────────────────────────────────────────────────────────
+const SESSION_TOKEN_EXPIRES_IN         = '12h';
+const SESSION_TOKEN_EXPIRES_IN_SECONDS = 12 * 60 * 60;
+
+// ────────────────────────────────────────────────────────────
+//  Reseteo de contraseña por bloqueo de cuenta (link enviado por correo)
+// ────────────────────────────────────────────────────────────
+const RESET_TOKEN_EXPIRES_IN = '15m';
+const RESET_TOKEN_PURPOSE    = 'password_reset';
+const FRONTEND_URL           = process.env.FRONTEND_URL || 'http://localhost:4200';
+
+// 🔥 CAMBIO: El enlace de recuperación ya NO se envía al operador — llega
+// exclusivamente al administrador, que es quien asigna la nueva contraseña.
+const ADMIN_ALERT_EMAIL = process.env.CORREO_ADMINISTRADOR;
+
+// ────────────────────────────────────────────────────────────
 //  Política de contraseñas (validación de doble capa: frontend + backend)
 //  12 a 15 caracteres, mínimo 1 mayúscula, 1 minúscula, 1 número y 1 especial
 // ────────────────────────────────────────────────────────────
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,15}$/;
-
-// Genera una contraseña temporal que siempre cumple PASSWORD_REGEX (12 caracteres)
-function generarPasswordTemporal() {
-  const UPPER   = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-  const LOWER   = 'abcdefghijkmnopqrstuvwxyz';
-  const NUMBERS = '23456789';
-  const SPECIAL = '@#$%&*';
-  const ALL     = UPPER + LOWER + NUMBERS + SPECIAL;
-
-  const pick = (chars) => chars[Math.floor(Math.random() * chars.length)];
-
-  // Garantiza al menos un carácter de cada categoría exigida por PASSWORD_REGEX
-  const obligatorios = [pick(UPPER), pick(LOWER), pick(NUMBERS), pick(SPECIAL)];
-  const resto = Array.from({ length: 12 - obligatorios.length }, () => pick(ALL));
-
-  const caracteres = [...obligatorios, ...resto];
-
-  // Fisher-Yates shuffle para no dejar el patrón de posiciones fijas
-  for (let i = caracteres.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [caracteres[i], caracteres[j]] = [caracteres[j], caracteres[i]];
-  }
-
-  return caracteres.join('');
-}
 
 // ────────────────────────────────────────────────────────────
 //  POST /api/login
@@ -62,7 +54,7 @@ const login = async (req, res) => {
   try {
     const usuario = await Usuario.findOne({
       where: { nombre_usuario: nombre_usuario.trim() },
-      // 🔥 CAMBIO: Agregamos 'requiere_cambio' a los atributos que consultamos de la base de datos
+      // 'requiere_cambio' a los atributos que consultamos de la base de datos
       attributes: [
         'id_usuario', 'nombre_usuario', 'password', 'id_rol', 'activo', 'requiere_cambio',
         'intentos_fallidos', 'bloqueado_hasta',
@@ -94,7 +86,7 @@ const login = async (req, res) => {
     }
 
     // 4. Validar que el rol global no esté apagado
-    if (!usuario.rol || !usuario.rol.activo) {
+    if (!usuario.rol?.activo) {
       return res.status(403).json({ ok: false, message: 'Tu rol de acceso está deshabilitado. Contacta al administrador.' });
     }
 
@@ -106,15 +98,28 @@ const login = async (req, res) => {
       const intentosActualizados = (usuario.intentos_fallidos || 0) + 1;
       const camposActualizar = { intentos_fallidos: intentosActualizados };
 
-      // Al llegar al límite, bloquea la cuenta por BLOQUEO_DURACION_MS
+      // Al llegar al límite: se bloquea la cuenta y se fuerza el reseteo por correo
       if (intentosActualizados >= MAX_INTENTOS_FALLIDOS) {
-        camposActualizar.bloqueado_hasta = new Date(Date.now() + BLOQUEO_DURACION_MS);
+        camposActualizar.intentos_fallidos = MAX_INTENTOS_FALLIDOS;
+        camposActualizar.requiere_cambio   = 1;
+        camposActualizar.bloqueado_hasta   = new Date(Date.now() + BLOQUEO_DURACION_MS);
 
-        // Alerta de seguridad (fire-and-forget): no bloquea la respuesta al cliente
-        transporter.sendMail({
-          from: `"Estación SIROCE-65" <${process.env.EMAIL_USER}>`,
-          to: process.env.EMAIL_USER,
-          subject: "🔴 Alerta de Seguridad - Bloqueo de Cuenta SIROCE-65",
+        await usuario.update(camposActualizar);
+
+        //  JWT temporal de recuperación (15 min) — solo sirve para /reset-password
+        const resetToken = jwt.sign(
+          { id_usuario: usuario.id_usuario, purpose: RESET_TOKEN_PURPOSE },
+          process.env.JWT_SECRET,
+          { expiresIn: RESET_TOKEN_EXPIRES_IN },
+        );
+        const resetLink = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+        // Alerta de seguridad + enlace de recuperación, ambos al administrador
+        // (fire-and-forget: no bloquea la respuesta al cliente)
+        enviarCorreo({
+          para: ADMIN_ALERT_EMAIL,
+          asunto: "🔴 Alerta de Seguridad - Bloqueo de Cuenta SIROCE-65",
+          nombreRemitente: 'Seguridad SIROCE-65',
           html: `
             <div style="max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; font-family: Arial, sans-serif;">
               <div style="background-color: #d32f2f; color: white; padding: 20px; text-align: center;">
@@ -135,6 +140,12 @@ const login = async (req, res) => {
                   </tr>
                 </table>
                 <p style="margin-top: 20px;">Se solicita tomar las medidas necesarias o revisar los registros de acceso de la estación.</p>
+                <div style="text-align: center; margin: 30px 0 10px;">
+                  <a href="${resetLink}" style="background-color: #c62828; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: bold; display: inline-block;">
+                    Asignar Nueva Contraseña
+                  </a>
+                </div>
+                <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">Este enlace es válido por 15 minutos.</p>
               </div>
               <div style="background-color: #f5f5f5; color: #777; text-align: center; padding: 15px; font-size: 12px;">
                 Este es un aviso automático generado por el sistema SIROCE-65 de la estación.
@@ -142,6 +153,13 @@ const login = async (req, res) => {
             </div>
           `,
         }).catch((error) => console.error('[AuthController.login] Error al enviar alerta de bloqueo:', error));
+
+        // Cuenta bloqueada: se corta el flujo aquí, con 403 en vez del 401 genérico
+        return res.status(403).json({
+          ok: false,
+          accountLocked: true,
+          message: 'Cuenta bloqueada. Contacte al administrador.',
+        });
       }
 
       await usuario.update(camposActualizar);
@@ -170,16 +188,15 @@ const login = async (req, res) => {
       rol           : usuario.rol.nombre,
     };
 
-    const expiresIn  = parseInt(process.env.JWT_EXPIRES_IN) || 28800;
-    const access_token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn });
+    const access_token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: SESSION_TOKEN_EXPIRES_IN });
 
     return res.status(200).json({
       ok            : true,
       access_token,
-      expires_in    : expiresIn,
+      expires_in    : SESSION_TOKEN_EXPIRES_IN_SECONDS,
       rol           : usuario.rol.nombre,
       nombre_usuario: usuario.nombre_usuario,
-      // 🔥 CAMBIO: Enviamos al frontend la instrucción de si debe o no cambiar la clave
+      // Enviar al frontend la instrucción de si debe o no cambiar la clave
       requiere_cambio: Boolean(usuario.requiere_cambio)
     });
 
@@ -191,25 +208,28 @@ const login = async (req, res) => {
 
 // ────────────────────────────────────────────────────────────
 //  POST /api/recuperar-password
+//  Sistema de tickets cerrado: NO se le envía nada al operador.
+//  Se notifica exclusivamente al administrador, con un enlace para
+//  que sea él quien le asigne la nueva contraseña.
 // ────────────────────────────────────────────────────────────
 const recuperarPassword = async (req, res) => {
   try {
     const { identificador } = req.body;
 
     if (!identificador) {
-      return res.status(400).json({ ok: false, message: 'Proporcione un DPI o correo.' });
+      return res.status(400).json({ ok: false, message: 'Proporcione un nombre de usuario o DPI.' });
     }
 
-    let usuario = await Usuario.findOne({ 
-      where: { nombre_usuario: identificador.trim() } 
+    let usuario = await Usuario.findOne({
+      where: { nombre_usuario: identificador.trim() }
     });
 
     if (!usuario) {
       const persona = await Persona.findOne({ where: { DPI: identificador.trim() } });
       if (persona) {
-        const idUsr = persona.ID_USUARIO || persona.id_usuario; 
+        const idUsr = persona.ID_USUARIO || persona.id_usuario;
         if (idUsr) {
-          usuario = await Usuario.findByPk(idUsr); 
+          usuario = await Usuario.findByPk(idUsr);
         }
       }
     }
@@ -218,19 +238,18 @@ const recuperarPassword = async (req, res) => {
       return res.status(404).json({ ok: false, message: 'Usuario no encontrado en el sistema.' });
     }
 
-    // Genera 12 caracteres garantizando mayúscula, minúscula, número y especial (PASSWORD_REGEX)
-    const passwordTemporal = generarPasswordTemporal();
-    
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(passwordTemporal, salt);
-    
-    // 🔥 CAMBIO: Guardamos la nueva clave y encendemos la bandera de requerir cambio (1)
-    await usuario.update({ password: passwordHash, requiere_cambio: 1 }); 
+    // JWT temporal de recuperación (15 min) — solo sirve para /reset-password
+    const resetToken = jwt.sign(
+      { id_usuario: usuario.id_usuario, purpose: RESET_TOKEN_PURPOSE },
+      process.env.JWT_SECRET,
+      { expiresIn: RESET_TOKEN_EXPIRES_IN },
+    );
+    const resetLink = `${FRONTEND_URL}/reset-password?token=${resetToken}`;
 
-    await transporter.sendMail({
-      from: `"Soporte SIROCE-65" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER, 
-      subject: "🔐 Recuperación de Contraseña - SIROCE-65", 
+    await enviarCorreo({
+      para: ADMIN_ALERT_EMAIL,
+      asunto: "🔐 Solicitud de Recuperación de Contraseña - SIROCE-65",
+      nombreRemitente: 'Soporte SIROCE-65',
       html: `
         <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f5f7; padding: 40px 20px; text-align: center;">
           <div style="max-width: 500px; margin: 0 auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
@@ -241,26 +260,27 @@ const recuperarPassword = async (req, res) => {
               </p>
             </div>
             <div style="padding: 35px 30px; color: #333333; text-align: left;">
-              <p style="font-size: 16px; margin-top: 0; color: #1a1a1a;">Hola <strong>${usuario.nombre_usuario}</strong>,</p>
-              <p style="font-size: 14px; line-height: 1.6; color: #555555;">Se ha solicitado un restablecimiento de contraseña para tu cuenta en el Sistema de Registro Operativo y Control de Emergencias.</p>
-              <div style="background-color: #fafafa; border-left: 4px solid #c62828; border-radius: 0 4px 4px 0; padding: 20px; margin: 25px 0; text-align: center;">
-                <p style="margin: 0; font-size: 12px; color: #777777; text-transform: uppercase; letter-spacing: 1.5px;">Tu contraseña temporal es</p>
-                <p style="margin: 10px 0 0; font-size: 28px; font-weight: bold; color: #c62828; letter-spacing: 4px; font-family: monospace;">
-                  ${passwordTemporal}
-                </p>
+              <p style="font-size: 16px; margin-top: 0; color: #1a1a1a;">Hola,</p>
+              <p style="font-size: 14px; line-height: 1.6; color: #555555;">
+                El usuario <strong>${usuario.nombre_usuario}</strong> ha olvidado su contraseña y solicita un restablecimiento.
+                Haz clic en el siguiente enlace para asignarle una nueva contraseña:
+              </p>
+              <div style="text-align: center; margin: 30px 0 10px;">
+                <a href="${resetLink}" style="background-color: #c62828; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: bold; display: inline-block;">
+                  Asignar Nueva Contraseña
+                </a>
               </div>
-              <p style="font-size: 14px; line-height: 1.6; color: #555555; margin-bottom: 0;">Por motivos de seguridad, el sistema te solicitará cambiar esta clave temporal de forma obligatoria al iniciar sesión.</p>
+              <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">Este enlace es válido por 15 minutos.</p>
             </div>
             <div style="background-color: #f8f9fa; padding: 20px; border-top: 1px solid #eeeeee; font-size: 12px; color: #999999; line-height: 1.5;">
-              Este es un mensaje generado automáticamente por el servidor.<br>
-              Si no solicitaste este cambio, comunícate con la comandancia de inmediato.
+              Este es un mensaje generado automáticamente por el servidor.
             </div>
           </div>
         </div>
       `,
     });
 
-    return res.status(200).json({ ok: true, message: 'Instrucciones enviadas al correo registrado.' });
+    return res.status(200).json({ ok: true, message: 'Solicitud enviada al administrador.' });
 
   } catch (error) {
     console.error('[AuthCtrl.recuperarPassword]', error);
@@ -337,7 +357,7 @@ const cambiarPassword = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(nueva_password, salt);
     
-    // 🔥 CAMBIO: Guardamos la nueva clave definitiva y apagamos la bandera (0)
+    // Guardar la nueva clave definitiva y apagamos la bandera (0)
     await usuario.update({ password: passwordHash, requiere_cambio: 0 });
 
     return res.status(200).json({ ok: true, message: 'Contraseña actualizada correctamente.' });
@@ -348,9 +368,64 @@ const cambiarPassword = async (req, res) => {
   }
 };
 
+// ────────────────────────────────────────────────────────────
+//  POST /api/reset-password
+//  Cierra el flujo de bloqueo de cuenta: recibe el JWT temporal
+//  enviado por correo (15 min) y la nueva contraseña.
+// ────────────────────────────────────────────────────────────
+const resetPassword = async (req, res) => {
+  try {
+    const token       = req.body.token || req.params.token;
+    const { newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ ok: false, message: 'Los campos token y newPassword son obligatorios.' });
+    }
+
+    // Validación de doble capa: el backend nunca confía en la validación del frontend
+    if (!PASSWORD_REGEX.test(newPassword)) {
+      return res.status(400).json({ ok: false, message: 'La contraseña no cumple con los requisitos de seguridad de la estación.' });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (error) {
+      return res.status(401).json({ ok: false, message: 'El enlace de recuperación es inválido o ha expirado.' });
+    }
+
+    // El token debe haber sido emitido específicamente para este flujo (no un access_token de sesión)
+    if (payload.purpose !== RESET_TOKEN_PURPOSE || !payload.id_usuario) {
+      return res.status(401).json({ ok: false, message: 'El enlace de recuperación es inválido.' });
+    }
+
+    const usuario = await Usuario.findByPk(payload.id_usuario);
+    if (!usuario) {
+      return res.status(404).json({ ok: false, message: 'Usuario no encontrado.' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await usuario.update({
+      password         : passwordHash,
+      intentos_fallidos: 0,
+      bloqueado_hasta  : null,
+      requiere_cambio  : 0,
+    });
+
+    return res.status(200).json({ ok: true, message: 'Contraseña restablecida correctamente. Ya puedes iniciar sesión.' });
+
+  } catch (error) {
+    console.error('[AuthCtrl.resetPassword]', error);
+    return res.status(500).json({ ok: false, message: 'Error interno al restablecer la contraseña.' });
+  }
+};
+
 module.exports = {
   login,
   recuperarPassword,
   cambiarPassword,
-  updateMandatoryPassword
+  updateMandatoryPassword,
+  resetPassword,
 };

@@ -1,9 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormGroup, FormControl } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
 
 import { ServiciosService } from '../../core/services/servicios.service';
-import { InsumosService }   from '../../core/services/insumos.service';
+import { InsumosService, InsumoRaw, HistorialConsumoRaw } from '../../core/services/insumos.service';
 import { VehiculosService } from '../../core/services/vehiculos.service';
 import { BomberosService }  from '../../core/services/bomberos.service';
 // 🔥 IMPORTAMOS EL SERVICIO DE USUARIOS (Ajusta el nombre si en tu proyecto se llama distinto)
@@ -39,8 +40,21 @@ export class ReportesComponent implements OnInit {
   filtroCategoria = new FormControl<string>('TODOS');
   filtroEstado = new FormControl<string>('TODOS');
   tipoReporteEmergencia = new FormControl<string>('detallado'); 
-  tipoRecurso = new FormControl<string>('todos'); 
-  
+  tipoRecurso = new FormControl<string>('todos');
+
+  // 🔥 Inventario: tipo de reporte + rango de fechas (solo aplica al Historial de Consumo)
+  tipoReporteInsumo = new FormControl<string>('estado');
+  rangoFechasInsumo = new FormGroup({
+    inicio: new FormControl<Date | null>({ value: null, disabled: true }),
+    fin: new FormControl<Date | null>({ value: null, disabled: true }),
+  });
+
+  // 🔥 Parque Vehicular: filtro por estado operativo de la unidad
+  filtroEstadoVehiculo = new FormControl<string>('TODOS');
+
+  // 🔥 Personal: filtro por estado operativo del elemento
+  filtroEstadoPersonal = new FormControl<string>('TODOS');
+
   isGenerating = false;
 
   // 🔥 VARIABLES DINÁMICAS
@@ -54,12 +68,25 @@ export class ReportesComponent implements OnInit {
     private vehiculosService: VehiculosService,
     private bomberosService: BomberosService, 
     private usuariosService: UsuariosService, // 🔥 INYECTAMOS EL SERVICIO AQUÍ
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private destroyRef: DestroyRef
   ) { }
 
-  ngOnInit(): void { 
+  ngOnInit(): void {
     this.obtenerNombreReal();
     this.cargarJefeAutorizador();
+
+    // 🔥 El rango de fechas de Inventario solo tiene sentido para el Historial de Consumo
+    this.tipoReporteInsumo.valueChanges.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((tipo) => {
+      if (tipo === 'historial') {
+        this.rangoFechasInsumo.enable();
+      } else {
+        this.rangoFechasInsumo.reset();
+        this.rangoFechasInsumo.disable();
+      }
+    });
   }
 
   // ════════════════════════════════════════════════════════════
@@ -124,28 +151,29 @@ export class ReportesComponent implements OnInit {
       next: (res: any) => {
         if (res.ok && res.data) {
           
+          // 🔥 3NF: b.cargo ahora es un objeto { ID_CARGO, CARGO } (antes era texto plano)
           const turnosHoy = this.getTurnosDelDia();
           const todosLosJefes = res.data.filter((b: any) => {
-            const cargo = String(b.CARGO || b.cargo || b.cargoFuncional || '').toLowerCase();
-            return cargo.includes('jefe'); 
+            const cargo = String(b.cargo?.CARGO || b.CARGO || b.cargoFuncional || '').toLowerCase();
+            return cargo.includes('jefe');
           });
 
           if (todosLosJefes.length > 0) {
             let jefeSeleccionado = todosLosJefes.find((j: any) => {
-              const cargo = String(j.CARGO || j.cargo || '').toLowerCase();
+              const cargo = String(j.cargo?.CARGO || j.CARGO || '').toLowerCase();
               const turno = this.getTurnoBombero(j);
               return cargo.includes('jefe de turno') && turnosHoy.includes(turno);
             });
 
             if (!jefeSeleccionado) {
               jefeSeleccionado = todosLosJefes.find((j: any) => {
-                const cargo = String(j.CARGO || j.cargo || '').toLowerCase();
+                const cargo = String(j.cargo?.CARGO || j.CARGO || '').toLowerCase();
                 return cargo.includes('jefe de compañía');
               });
             }
             if (!jefeSeleccionado) jefeSeleccionado = todosLosJefes[0];
 
-            const cargoFinal = jefeSeleccionado.CARGO || jefeSeleccionado.cargo || 'Comandante de Estación';
+            const cargoFinal = jefeSeleccionado.cargo?.CARGO || jefeSeleccionado.CARGO || 'Comandante de Estación';
             this.nombreJefeFirma = `${jefeSeleccionado.persona?.NOMBRE || ''} ${jefeSeleccionado.persona?.APELLIDO || ''}`.trim();
             this.cargoJefeFirma = `Vo.Bo. ${cargoFinal}`;
           }
@@ -189,8 +217,7 @@ export class ReportesComponent implements OnInit {
 
         if (estadoFiltro !== 'TODOS') {
            dataFiltrada = dataFiltrada.filter((s: any) => {
-             const obs = s.OBSERVACIONES_FINALES || '';
-             const isCancelada = obs.includes('[CANCELADO');
+             const isCancelada = !!s.ES_FALSA_ALARMA;
              if (estadoFiltro === 'CANCELADA') return isCancelada;
              if (estadoFiltro === 'FINALIZADA') return !isCancelada && s.HORA_ENTRADA != null;
              return true;
@@ -220,6 +247,13 @@ export class ReportesComponent implements OnInit {
     });
   }
 
+  // 🔥 3NF: la unidad destacada ya no es texto en TB_SERVICIOS — se deriva
+  // del JOIN con detalle_vehiculo (`vehiculosAsignados`).
+  private unidadTextoDe(s: any): string {
+    const lista = s.vehiculosAsignados || [];
+    return lista.length > 0 ? lista.map((v: any) => `${v.PLACA} - ${v.MARCA}`).join(', ') : 'N/A';
+  }
+
   private async generarExcelEmergencias(datos: any[], desde: string, hasta: string, estadoFiltro: string = 'TODOS') {
     try {
       const workbook = new Workbook();
@@ -239,8 +273,7 @@ export class ReportesComponent implements OnInit {
       });
       headerRow.height = 30;
       datos.forEach((s) => {
-        const obs = s.OBSERVACIONES_FINALES || '';
-        const estadoLabel = obs.includes('[CANCELADO') ? 'Falsa Alarma' : (s.HORA_ENTRADA ? 'Finalizada' : 'En Ruta');
+        const estadoLabel = s.ES_FALSA_ALARMA ? 'Falsa Alarma' : (s.HORA_ENTRADA ? 'Finalizada' : 'En Ruta');
         
         const row = worksheet.addRow({
           id: s.ID_SERVICIO, fecha: s.FECHA_SERVICIO, 
@@ -249,7 +282,7 @@ export class ReportesComponent implements OnInit {
           direccion: s.DIRECCION_SERVICIO, solicitante: s.NOMBRE_SOLICITANTE || 'N/A', 
           salida: s.HORA_SALIDA ? new Date(s.HORA_SALIDA).toLocaleTimeString() : '--:--',
           entrada: s.HORA_ENTRADA ? new Date(s.HORA_ENTRADA).toLocaleTimeString() : '--:--',
-          unidad: s.UNIDAD_DESTACADA || 'N/A', estado: estadoLabel
+          unidad: this.unidadTextoDe(s), estado: estadoLabel
         });
         row.eachCell((cell, colNumber) => {
           cell.alignment = { vertical: 'middle', horizontal: 'center' };
@@ -284,14 +317,13 @@ export class ReportesComponent implements OnInit {
         ]
       ];
       datos.forEach((s) => {
-        const obs = s.OBSERVACIONES_FINALES || '';
-        const isFalsa = obs.includes('[CANCELADO');
+        const isFalsa = !!s.ES_FALSA_ALARMA;
         const categoriaVal = (s.tipoServicio && (s.tipoServicio as any).CATEGORIA) ? (s.tipoServicio as any).CATEGORIA : 'N/A';
         
         tablaCuerpo.push([
           { text: s.ID_SERVICIO.toString(), style: 'tdCenter' }, { text: s.FECHA_SERVICIO, style: 'tdCenter' },
           { text: categoriaVal, style: 'tdCenter' }, { text: s.tipoServicio?.TIPO_SERVICIO || 'N/A', style: 'td' }, 
-          { text: s.DIRECCION_SERVICIO, style: 'td' }, { text: s.UNIDAD_DESTACADA || 'N/A', style: 'tdCenter' }, 
+          { text: s.DIRECCION_SERVICIO, style: 'td' }, { text: this.unidadTextoDe(s), style: 'tdCenter' },
           { text: isFalsa ? 'Cancelada' : 'Finalizada', style: 'tdBoldCenter' }
         ]);
       });
@@ -345,12 +377,15 @@ export class ReportesComponent implements OnInit {
         const tipo = s.tipoServicio?.TIPO_SERVICIO || 'NO ESPECIFICADO';
         resumenMap.set(tipo, (resumenMap.get(tipo) || 0) + 1);
 
-        // 1. EVALUAR A LA VÍCTIMA PRINCIPAL (La que está en sus propias columnas)
-        if (s.NOMBRE_PACIENTE && s.NOMBRE_PACIENTE.trim() !== '') totalPacientes++;
-        if (s.LUGAR_TRASLADO && s.LUGAR_TRASLADO.trim() !== '' && s.LUGAR_TRASLADO.toLowerCase() !== 'ninguno') totalTraslados++;
-        if (s.FALLECIDO && (s.FALLECIDO.toUpperCase() === 'SI' || s.FALLECIDO.toUpperCase() === 'SÍ')) totalFallecidos++;
+        // 1. 🔥 3NF: EVALUAR A TODAS LAS VÍCTIMAS REALES (tb_pacientes vía JOIN)
+        const pacientesServicio: any[] = Array.isArray(s.pacientes) ? s.pacientes : [];
+        pacientesServicio.forEach((p: any) => {
+          if (p.NOMBRE_PACIENTE && p.NOMBRE_PACIENTE.trim() !== '') totalPacientes++;
+          if (p.LUGAR_TRASLADO && p.LUGAR_TRASLADO.trim() !== '' && p.LUGAR_TRASLADO.toLowerCase() !== 'ninguno') totalTraslados++;
+          if (p.FALLECIDO && (p.FALLECIDO.toUpperCase() === 'SI' || p.FALLECIDO.toUpperCase() === 'SÍ')) totalFallecidos++;
+        });
 
-        // 2. EVALUAR A LAS VÍCTIMAS ADICIONALES (Las que se guardaron en observaciones)
+        // 2. LEGADO: registros antiguos que aún guardan víctimas extra como texto en observaciones
         const obs = s.OBSERVACIONES_FINALES || '';
         if (obs.includes('[VÍCTIMAS ADICIONALES ATENDIDAS]:')) {
           const partesObs = obs.split('[VÍCTIMAS ADICIONALES ATENDIDAS]:');
@@ -416,18 +451,63 @@ export class ReportesComponent implements OnInit {
   //  MÓDULO DE INSUMOS MÉDICOS
   // ════════════════════════════════════════════════════════════
   exportarInventario(formato: 'pdf' | 'excel'): void {
+    const tipoReporte = this.tipoReporteInsumo.value || 'estado';
+
+    if (tipoReporte === 'historial') {
+      const inicio = this.rangoFechasInsumo.value.inicio;
+      const fin = this.rangoFechasInsumo.value.fin;
+      if (!inicio || !fin) {
+        this.snackBar.open('Selecciona el rango de fechas del historial de consumo.', 'OK', { duration: 3000 });
+        return;
+      }
+
+      const fechaInicio = inicio.toISOString().split('T')[0];
+      const fechaFin = fin.toISOString().split('T')[0];
+
+      this.isGenerating = true;
+      this.snackBar.open('Consultando historial de consumo...', '', { duration: 2000 });
+
+      this.insumosService.getHistorialConsumo(fechaInicio, fechaFin).subscribe({
+        next: (res) => {
+          this.isGenerating = false;
+
+          if (!res.ok || !res.data || res.data.length === 0) {
+            this.snackBar.open('No hay consumo de insumos registrado en ese rango de fechas.', 'OK', { duration: 3000 });
+            return;
+          }
+
+          const datos = res.data.map((i: HistorialConsumoRaw) => ({
+            id: `I-${i.id_insumo}`,
+            nombre: i.nombre,
+            estado: i.estado || 'Activo',
+            cantidad: i.cantidad_total
+          }));
+
+          if (formato === 'excel') this.generarExcelHistorialConsumo(datos, fechaInicio, fechaFin);
+          else this.generarPdfHistorialConsumo(datos, fechaInicio, fechaFin);
+        },
+        error: () => {
+          this.isGenerating = false;
+          this.snackBar.open('Error al obtener el historial de consumo.', 'OK', { duration: 4000 });
+        }
+      });
+      return;
+    }
+
     this.isGenerating = true;
     this.snackBar.open('Consultando bodega e insumos...', '', { duration: 2000 });
 
     this.insumosService.getAll().subscribe({
-      next: (res: any) => {
+      next: (res) => {
         if (!res.ok || !res.data) {
           this.isGenerating = false;
           this.snackBar.open('No se encontraron insumos.', 'OK', { duration: 3000 });
           return;
         }
-        const datos = res.data.map((i: any) => ({
-          id: `I-${i.ID_INSUMO}`, nombre: i.NOMBRE, cat: i.TIPO_INSUMO || 'Insumo Médico',
+        // 🔥 id_tipo_insumo es la FK numérica real (1=Insumo Médico, 2=EPP, 4=Herramienta)
+        const datos = res.data.map((i: InsumoRaw) => ({
+          id: `I-${i.ID_INSUMO}`, nombre: i.NOMBRE,
+          cat: i.id_tipo_insumo === 2 ? 'EPP' : i.id_tipo_insumo === 4 ? 'Herramienta' : 'Insumo Médico',
           stock: i.STOCK, unidad: 'Unidad', estado: i.ESTADO || 'Activo'
         }));
         
@@ -520,6 +600,78 @@ export class ReportesComponent implements OnInit {
     }
   }
 
+  private async generarExcelHistorialConsumo(datos: any[], desde: string, hasta: string) {
+    try {
+      const workbook = new Workbook();
+      const worksheet = workbook.addWorksheet('Historial de Consumo');
+      worksheet.columns = [
+        { header: 'Código', key: 'id', width: 15 }, { header: 'Insumo', key: 'nombre', width: 40 },
+        { header: 'Estado', key: 'estado', width: 20 }, { header: 'Cantidad Consumida', key: 'cantidad', width: 22 }
+      ];
+      const headerRow = worksheet.getRow(1);
+      headerRow.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1976D2' } };
+        cell.font = { color: { argb: 'FFFFFFFF' }, bold: true, size: 12 };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+      headerRow.height = 30;
+      datos.forEach((i) => {
+        const row = worksheet.addRow({ id: i.id, nombre: i.nombre, estado: i.estado, cantidad: i.cantidad });
+        row.eachCell((cell, colNumber) => {
+          cell.alignment = { vertical: 'middle', horizontal: (colNumber === 1 || colNumber >= 3) ? 'center' : 'left' };
+          cell.border = { top: { style: 'thin', color: { argb: 'FFEEEEEE' } }, bottom: { style: 'thin', color: { argb: 'FFEEEEEE' } } };
+        });
+      });
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      saveAs(blob, `Historial_Consumo_Insumos_${desde}_al_${hasta}.xlsx`);
+      this.isGenerating = false;
+      this.snackBar.open('¡Excel de historial de consumo descargado con éxito!', 'OK', { duration: 3000 });
+    } catch (error) {
+      this.isGenerating = false;
+      this.snackBar.open('Error al exportar el historial a Excel.', 'OK', { duration: 4000 });
+    }
+  }
+
+  private generarPdfHistorialConsumo(datos: any[], desde: string, hasta: string): void {
+    try {
+      const tablaCuerpo = [
+        [
+          { text: 'CÓDIGO', style: 'th' }, { text: 'INSUMO', style: 'th' },
+          { text: 'ESTADO', style: 'th' }, { text: 'CANTIDAD CONSUMIDA', style: 'th' }
+        ]
+      ];
+      datos.forEach((i) => {
+        tablaCuerpo.push([
+          { text: i.id, style: 'tdCenter' }, { text: i.nombre, style: 'td' },
+          { text: i.estado, style: 'tdCenter' }, { text: i.cantidad.toString(), style: 'tdBoldCenter' }
+        ]);
+      });
+
+      const docDefinition: any = {
+        pageOrientation: 'portrait', pageSize: 'LETTER', pageMargins: [40, 40, 40, 40],
+        content: [
+          this.getDocHeader('HISTORIAL DE CONSUMO DE INSUMOS', `Periodo del ${desde} al ${hasta}`),
+          { canvas: [{ type: 'line', x1: 0, y1: 0, x2: 532, y2: 0, lineWidth: 1.5, lineColor: '#333333' }], margin: [0, 0, 0, 20] },
+          {
+            table: { headerRows: 1, widths: [55, '*', 90, 110], body: tablaCuerpo },
+            layout: { hLineWidth: () => 1, vLineWidth: () => 1, hLineColor: () => '#000000', vLineColor: () => '#000000' },
+            margin: [0, 0, 0, 30]
+          },
+          { text: `Total de insumos con consumo registrado: ${datos.length}`, bold: true, fontSize: 10 },
+          this.getSignaturesBlock(this.nombreUsuarioLogueado, 'Operador de Cabina y Despacho', this.nombreJefeFirma, this.cargoJefeFirma)
+        ],
+        styles: this.getDocStyles()
+      };
+      pdfMake.createPdf(docDefinition).download(`Historial_Consumo_Insumos_${desde}_al_${hasta}.pdf`);
+      this.isGenerating = false;
+      this.snackBar.open('¡Reporte PDF de historial de consumo descargado con éxito!', 'OK', { duration: 3000 });
+    } catch (error) {
+      this.isGenerating = false;
+      this.snackBar.open('Error al generar el PDF del historial de consumo.', 'OK', { duration: 5000 });
+    }
+  }
+
   // ════════════════════════════════════════════════════════════
   //  MÓDULO DE BITÁCORA DE FLOTA VEHICULAR
   // ════════════════════════════════════════════════════════════
@@ -534,7 +686,23 @@ export class ReportesComponent implements OnInit {
           this.snackBar.open('No se encontraron vehículos.', 'OK', { duration: 3000 });
           return;
         }
-        const datos = res.data.map((v: any) => {
+
+        // 🔥 Filtro real por estado: evita descargar/mapear la flota completa si solo se pidió un subconjunto
+        const filtroEstadoV = this.filtroEstadoVehiculo.value || 'TODOS';
+        let vehiculosFiltrados = res.data;
+        if (filtroEstadoV !== 'TODOS') {
+          vehiculosFiltrados = vehiculosFiltrados.filter((v: any) =>
+            Number(v.ID_ESTADO_V || v.id_estado_v || 0) === Number(filtroEstadoV)
+          );
+        }
+
+        if (vehiculosFiltrados.length === 0) {
+          this.isGenerating = false;
+          this.snackBar.open('No hay vehículos que coincidan con el estado seleccionado.', 'OK', { duration: 3000 });
+          return;
+        }
+
+        const datos = vehiculosFiltrados.map((v: any) => {
           const idEstadoNum = Number(v.ID_ESTADO_V || v.id_estado_v || 0);
           
           let estadoStr = 'Desconocido';
@@ -643,7 +811,27 @@ export class ReportesComponent implements OnInit {
           this.snackBar.open('No se encontraron registros de personal.', 'OK', { duration: 3000 });
           return;
         }
-        const personalMapped = res.data.map((b: any) => ({
+
+        // 🔥 Filtro real por estado operativo (Activo / Suspendido / De Baja)
+        const filtroEstadoP = this.filtroEstadoPersonal.value || 'TODOS';
+        let personalFiltrado = res.data;
+        if (filtroEstadoP !== 'TODOS') {
+          personalFiltrado = personalFiltrado.filter((b: any) => {
+            const estado = String(b.estado?.ESTADO || '').toLowerCase();
+            if (filtroEstadoP === 'ACTIVOS') return estado === 'activo';
+            if (filtroEstadoP === 'SUSPENDIDOS') return estado === 'suspendido';
+            if (filtroEstadoP === 'INACTIVOS') return estado === 'de baja';
+            return true;
+          });
+        }
+
+        if (personalFiltrado.length === 0) {
+          this.isGenerating = false;
+          this.snackBar.open('No hay personal que coincida con el estado seleccionado.', 'OK', { duration: 3000 });
+          return;
+        }
+
+        const personalMapped = personalFiltrado.map((b: any) => ({
           id: `B-${b.ID_BOMBERO || 'N/A'}`,
           nombreCompleto: `${b.persona?.NOMBRE || ''} ${b.persona?.APELLIDO || ''}`.trim() || 'No registrado',
           dpi: b.persona?.DPI || 'N/A',

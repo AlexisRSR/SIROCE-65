@@ -8,7 +8,7 @@
 'use strict';
 
 const { Router }     = require('express');
-const authMiddleware = require('../middlewares/authMiddleware');
+const { authMiddleware } = require('../middlewares/authMiddleware');
 const ctrl           = require('../controllers/insumoController');
 
 const router = Router();
@@ -17,12 +17,15 @@ const router = Router();
 router.use(authMiddleware);
 
 // ── Rutas CRUD ────────────────────────────────────────────────
-//  GET    /api/insumos          → todos
-//  GET    /api/insumos/:id      → uno por ID
-//  POST   /api/insumos          → crear nuevo
-//  PUT    /api/insumos/:id      → actualizar por ID
-//  DELETE /api/insumos/:id      → eliminar por ID
+//  GET    /api/insumos                    → todos
+//  GET    /api/insumos/historial-consumo  → consumo agrupado por rango de fechas
+//  GET    /api/insumos/:id                → uno por ID
+//  POST   /api/insumos                    → crear nuevo
+//  PUT    /api/insumos/:id                → actualizar por ID
+//  DELETE /api/insumos/:id                → eliminar por ID
 
+// ⚠ La ruta fija '/historial-consumo' debe ir ANTES de '/:id'.
+router.get   ('/insumos/historial-consumo', ctrl.getHistorialConsumo);
 router.get   ('/insumos',     ctrl.getAllInsumos);
 router.get   ('/insumos/:id', ctrl.getInsumoById);
 router.post  ('/insumos',     ctrl.createInsumo);

@@ -64,6 +64,14 @@ export class ReportePdfService {
       fontSize: 11
     });
 
+    // 🔥 3NF: bloque de CANCELADA / FALSA ALARMA (viene de ES_FALSA_ALARMA / MOTIVO_CANCELACION,
+    // ya no de un marcador de texto dentro de OBSERVACIONES_FINALES). Mismo estilo sobrio
+    // que el resto de los campos del informe (SOLICITANTE, DIRECCIÓN, etc.).
+    if (datos.esFalsaAlarma) {
+      docDefinition.content.push({ text: [{ text: 'ESTADO: ', bold: true }, 'CANCELADA / FALSA ALARMA'], margin: [0, 0, 0, 15], fontSize: 11 });
+      docDefinition.content.push({ text: [{ text: 'MOTIVO DE CANCELACIÓN: ', bold: true }, datos.motivoCancelacion || 'No especificado'], margin: [0, 0, 0, 15], fontSize: 11 });
+    }
+
     // Filas Generales
     docDefinition.content.push({ text: [{ text: 'SOLICITANTE: ', bold: true }, datos.solicitante], margin: [0, 0, 0, 15], fontSize: 11 });
     docDefinition.content.push({ text: [{ text: 'DIRECCIÓN: ', bold: true }, datos.direccion], margin: [0, 0, 0, 15], fontSize: 11 });
@@ -95,6 +103,13 @@ export class ReportePdfService {
     // Por si acaso viene con el formato feo, lo forzamos a limpiarse aquí mismo.
     let observacionesLimpias = datos.observaciones || '';
     observacionesLimpias = observacionesLimpias.replace(/\[VÍCTIMAS ADICIONALES ATENDIDAS\]:/g, 'Detalle de víctimas adicionales atendidas:');
+
+    // 🔥 MATERIAL E INSUMOS UTILIZADOS (solo si el cierre registró alguno)
+    if (Array.isArray(datos.insumos) && datos.insumos.length > 0) {
+      docDefinition.content.push({ text: 'MATERIAL E INSUMOS UTILIZADOS:', bold: true, margin: [0, 0, 0, 5], fontSize: 11 });
+      const listaInsumos = datos.insumos.map((i: any) => `•  ${i.cantidad} x ${i.nombre}`).join('\n');
+      docDefinition.content.push({ text: listaInsumos, margin: [0, 0, 0, 15], fontSize: 11 });
+    }
 
     // CUADRO DE OBSERVACIONES
     docDefinition.content.push({ text: 'OBSERVACIONES:', bold: true, margin: [0, 0, 0, 5], fontSize: 11 });

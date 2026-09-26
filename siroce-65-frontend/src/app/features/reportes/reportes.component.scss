@@ -67,6 +67,11 @@
     .full-width { width: 100%; }
     .mt-3 { margin-top: 15px; }
 
+    // 🔥 Botones anclados al fondo: alineados entre las 4 tarjetas sin importar cuántos filtros tenga cada una
+    mat-card-actions {
+      margin-top: auto;
+    }
+
     .btn-excel {
       color: var(--accent-success); // Verde Excel
       margin-right: 8px;

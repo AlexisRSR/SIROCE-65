@@ -3,6 +3,7 @@
 // Entidad central del módulo de Personal.
 // Vincula a una Persona con su grado, estado operativo, turno y fecha de ingreso.
 // FK: ID_PERSONA → TB_PERSONAS | ID_GRADO → TB_GRADO_BOMBERO | ID_ESTADO_B → TB_ESTADO_BOMBERO
+//     ID_CARGO → tb_cargo_bombero
 'use strict';
 
 const { DataTypes } = require('sequelize');
@@ -48,12 +49,12 @@ const Bombero = sequelize.define(
       type     : DataTypes.STRING(50),
       allowNull: true,
     },
-    // Dentro de la definición del modelo Bombero en Sequelize:
-    CARGO: {
-      type: DataTypes.STRING(100),
+
+    // 🔥 3NF: reemplaza al antiguo CARGO de texto libre — FK a tb_cargo_bombero
+    ID_CARGO: {
+      type     : DataTypes.INTEGER,
       allowNull: true,
-      defaultValue: 'Bombero de Línea'
-    }
+    },
   },
   {
     tableName      : 'TB_BOMBERO',

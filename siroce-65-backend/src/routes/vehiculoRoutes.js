@@ -5,7 +5,7 @@
 'use strict';
 
 const { Router } = require('express');
-const authMiddleware = require('../middlewares/authMiddleware');
+const { authMiddleware } = require('../middlewares/authMiddleware');
 const ctrl = require('../controllers/vehiculoController');
 
 const router = Router();
@@ -24,17 +24,19 @@ router.get('/estados-vehiculo', ctrl.getEstadosVehiculo);
 // ════════════════════════════════════════════════════════════
 //  VEHÍCULOS — TB_VEHICULO
 // ════════════════════════════════════════════════════════════
-//  GET    /api/vehiculos             → todos los vehículos (con tipo y estado)
-//  GET    /api/vehiculos/disponibles → SOLO vehículos operativos para despacho (🔥 NUEVO)
-//  GET    /api/vehiculos/:id         → un vehículo por ID
-//  POST   /api/vehiculos             → registrar nuevo vehículo
-//  PUT    /api/vehiculos/:id         → actualizar datos del vehículo
-//  DELETE /api/vehiculos/:id         → eliminar vehículo
+//  GET    /api/vehiculos                  → todos los vehículos (con tipo y estado)
+//  GET    /api/vehiculos/disponibles      → SOLO vehículos operativos para despacho (🔥 NUEVO)
+//  GET    /api/vehiculos/siguiente-numero → preview del próximo NUMERO_UNIDAD autogenerado
+//  GET    /api/vehiculos/:id              → un vehículo por ID
+//  POST   /api/vehiculos                  → registrar nuevo vehículo
+//  PUT    /api/vehiculos/:id              → actualizar datos del vehículo
+//  DELETE /api/vehiculos/:id              → eliminar vehículo
 //
-//  ⚠ '/disponibles' debe ir ANTES de '/:id' para evitar colisiones de enrutamiento.
-router.get   ('/vehiculos',             ctrl.getAllVehiculos);
-router.get   ('/vehiculos/disponibles', ctrl.getVehiculosDisponibles); // 🔥 Corregido alias 'ctrl' y posición
-router.get   ('/vehiculos/:id',         ctrl.getVehiculoById);
+//  ⚠ '/disponibles' y '/siguiente-numero' deben ir ANTES de '/:id' para evitar colisiones de enrutamiento.
+router.get   ('/vehiculos',                  ctrl.getAllVehiculos);
+router.get   ('/vehiculos/disponibles',      ctrl.getVehiculosDisponibles); // 🔥 Corregido alias 'ctrl' y posición
+router.get   ('/vehiculos/siguiente-numero', ctrl.getSiguienteNumeroUnidad);
+router.get   ('/vehiculos/:id',              ctrl.getVehiculoById);
 router.post  ('/vehiculos',             ctrl.createVehiculo);
 router.put   ('/vehiculos/:id',         ctrl.updateVehiculo);
 router.delete('/vehiculos/:id',         ctrl.deleteVehiculo);

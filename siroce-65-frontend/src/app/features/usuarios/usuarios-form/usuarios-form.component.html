@@ -27,18 +27,18 @@
 
       <div class="form-row">
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Nombre(s)**</mat-label>
+          <mat-label>Nombre(s)</mat-label>
           <input matInput formControlName="nombre" placeholder="Ej. Carlos">
         </mat-form-field>
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Apellido(s)**</mat-label>
+          <mat-label>Apellido(s)</mat-label>
           <input matInput formControlName="apellido" placeholder="Ej. Pérez">
         </mat-form-field>
       </div>
 
       <div class="form-row">
         <mat-form-field appearance="outline" class="form-field full-width">
-          <mat-label>DPI (13 dígitos sin espacios)**</mat-label>
+          <mat-label>DPI (13 dígitos sin espacios)</mat-label>
           <input matInput formControlName="dpi" maxlength="13" (keypress)="soloNumeros($event)">
           <mat-icon matSuffix style="color: var(--text-faint)">badge</mat-icon>
           
@@ -56,13 +56,13 @@
       <!-- Fila 1: Usuario y Rol -->
       <div class="form-row">
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Usuario del Sistema**</mat-label>
+          <mat-label>Usuario del Sistema</mat-label>
           <input matInput formControlName="usuario" autocomplete="off" [readonly]="isEditMode">
           <mat-icon matSuffix style="color: var(--text-faint)">account_circle</mat-icon>
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Rol Asignado**</mat-label>
+          <mat-label>Rol Asignado</mat-label>
           <mat-select formControlName="rol">
             <mat-option value="DESPACHO">Operador (Cabina)</mat-option>
             <mat-option value="ADMIN">Administrador</mat-option>
@@ -73,7 +73,7 @@
       <!-- Fila 2: Contraseñas -->
       <div class="form-row">
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>{{ isEditMode ? 'Nueva Contraseña' : 'Contraseña Segura**' }}</mat-label>
+          <mat-label>{{ isEditMode ? 'Nueva Contraseña' : 'Contraseña Segura' }}</mat-label>
           <input matInput formControlName="password" [type]="hidePassword ? 'password' : 'text'" autocomplete="new-password" placeholder="••••••••" maxlength="15">
           <span matSuffix style="display: flex; align-items: center;">
             <button mat-icon-button (click)="generarPasswordSegura()" type="button" tabindex="-1" matTooltip="Autogenerar contraseña segura" aria-label="Autogenerar contraseña segura">
@@ -91,7 +91,7 @@
         </mat-form-field>
 
         <mat-form-field appearance="outline" class="form-field">
-          <mat-label>Confirmar Contraseña {{ isEditMode ? '' : '**' }}</mat-label>
+          <mat-label>Confirmar Contraseña</mat-label>
           <input matInput formControlName="confirmPassword" [type]="hideConfirm ? 'password' : 'text'" autocomplete="new-password" placeholder="••••••••" maxlength="15">
           <button mat-icon-button matSuffix (click)="hideConfirm = !hideConfirm" type="button" tabindex="-1">
             <mat-icon style="color: var(--text-faint)">{{hideConfirm ? 'visibility_off' : 'visibility'}}</mat-icon>

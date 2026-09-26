@@ -122,22 +122,6 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="vehiculo">
-          <th mat-header-cell *matHeaderCellDef>Unidad Ideal</th>
-          <td mat-cell *matCellDef="let tipo">
-             <span *ngIf="tipo.id_tipo_v; else sinUnidad" 
-                   style="background: var(--bg-badge-neutral); border: 1px solid var(--border-strong); color: var(--text-primary); padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;">
-               <mat-icon style="font-size: 15px; width: 15px; height: 15px; color: #9e9e9e;">
-                 {{ getIconoVehiculo(tipo.id_tipo_v) }}
-               </mat-icon>
-               {{ getNombreVehiculo(tipo.id_tipo_v) }}
-             </span>
-             <ng-template #sinUnidad>
-               <span style="color: var(--text-faint);">—</span>
-             </ng-template>
-          </td>
-        </ng-container>
-
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef class="col-acciones">Acciones</th>
           <td mat-cell *matCellDef="let tipo" class="col-acciones">

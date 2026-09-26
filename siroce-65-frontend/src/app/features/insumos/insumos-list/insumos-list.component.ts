@@ -7,9 +7,8 @@ import { MatDialog }          from '@angular/material/dialog';
 import { MatSnackBar }        from '@angular/material/snack-bar';
 import { Subscription }       from 'rxjs';
 
-import { InsumosService, Insumo } from '../../../core/services/insumos.service';
+import { InsumosService, Insumo, InsumoRaw } from '../../../core/services/insumos.service';
 import { InsumosFormComponent } from '../insumos-form/insumos-form.component';
-// 🔥 1. IMPORTAMOS EL SERVICIO DE SEGURIDAD
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -25,16 +24,14 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatSort)      sort!: MatSort;
 
   dataSource      = new MatTableDataSource<Insumo>([]);
-  // 🔥 TESIS: Agregamos Propósito y Marca a las columnas visibles
   displayedColumns = ['num', 'nombre', 'tipo', 'proposito', 'marca', 'stock', 'estado', 'acciones'];
 
   isLoading  = false;
   deletingId : number | null = null;
   filterValue = '';
   
-  userRole = ''; // 🔥 Variable para guardar el rol y usarla en el HTML
+  userRole = ''; 
 
-  // 🔥 TESIS: Estadísticas adaptadas al Catálogo Unificado
   stats = { total: 0, herramientas: 0, medicos: 0, epp: 0, bajoStock: 0 };
   private subs = new Subscription();
 
@@ -43,16 +40,11 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
     private dialog  : MatDialog,
     private snackBar: MatSnackBar,
     private cdr     : ChangeDetectorRef,
-    private auth    : AuthService // 🔥 2. LO INYECTAMOS AQUÍ EN EL CONSTRUCTOR
+    private auth    : AuthService 
   ) {}
 
   ngOnInit(): void {
-    // Obtenemos el rol del usuario
     this.userRole = this.auth.getRole();
-
-    // 🔥 BORRAMOS el if que ocultaba la columna entera de 'acciones'. 
-    // Ahora todos ven la columna.
-
     this.configurarDataSource();
     this.loadInsumos();
   }
@@ -70,7 +62,7 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.dataSource.sortingDataAccessor = (item: Insumo, property: string): string | number => {
       switch (property) {
         case 'nombre'    : return item.nombre?.toLowerCase()    ?? '';
-        case 'tipo'      : return item.tipoInsumo?.toLowerCase() ?? '';
+        case 'tipo'      : return this.getTipoLabel(item.tipoInsumo).toLowerCase();
         case 'proposito' : return item.proposito?.toLowerCase() ?? '';
         case 'marca'     : return item.marca?.toLowerCase() ?? '';
         case 'stock'     : return item.stock                    ?? 0;
@@ -80,16 +72,12 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
     };
 
     this.dataSource.filterPredicate = (data: Insumo, filter: string): boolean => {
-      const haystack = [data.nombre, data.tipoInsumo, data.estado, data.proposito, data.marca, data.modelo]
+      const haystack = [data.nombre, this.getTipoLabel(data.tipoInsumo), data.estado, data.proposito, data.marca, data.modelo]
         .join(' ').toLowerCase();
       return haystack.includes(filter.trim().toLowerCase());
     };
   }
 
-  // ════════════════════════════════════════════════════════════
-  //  CARGA DE DATOS — MAPEO ESTRICTO (RADAR DE VARIABLES)
-  //  Captura TODOS los campos nuevos para que no se borren al editar
-  // ════════════════════════════════════════════════════════════
   loadInsumos(): void {
     this.isLoading = true;
     this.cdr.markForCheck();
@@ -97,14 +85,13 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
     const sub = this.service.getAll().subscribe({
       next: (res) => {
         const lista: Insumo[] = res.ok
-          ? (res.data as any[]).map((raw: any) => ({
+          ? res.data.map((raw: InsumoRaw): Insumo => ({
               id         : raw.ID_INSUMO,
               nombre     : raw.NOMBRE      ?? '',
               descripcion: raw.DESCRIPCION ?? '',
-              tipoInsumo : raw.TIPO_INSUMO ?? '',
+              tipoInsumo : raw.id_tipo_insumo ?? null,
               stock      : raw.STOCK       ?? 0,
               estado     : raw.ESTADO      ?? 'Activo',
-              // 🔥 Captura de Trazabilidad y Propósito
               marca      : raw.MARCA       ?? '',
               modelo     : raw.MODELO      ?? '',
               numeroSerie: raw.NUMERO_SERIE ?? '',
@@ -126,13 +113,28 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
     this.subs.add(sub);
   }
 
+  // 🔥 Umbral de "Bajo Stock" según clasificación — mismos IDs y valores que
+  // insumoHelper.js en el backend (única fuente de verdad):
+  //   1 = Insumo Médico/Consumible -> 10 · 4 = Herramienta / 2 = EPP -> 3
+  private umbralBajoStockPorTipo(tipoInsumo: number | null): number {
+    if (tipoInsumo === 4 || tipoInsumo === 2) return 3;
+    return 10;
+  }
+
+  esStockBajo(insumo: Insumo): boolean {
+    return insumo.stock > 0 && insumo.stock < this.umbralBajoStockPorTipo(insumo.tipoInsumo);
+  }
+
   private calcularEstadisticas(lista: Insumo[]): void {
     this.stats = {
       total       : lista.length,
-      herramientas: lista.filter(i => i.tipoInsumo === 'Herramienta').length,
-      medicos     : lista.filter(i => i.tipoInsumo === 'Insumo Médico').length,
-      epp         : lista.filter(i => i.tipoInsumo === 'EPP').length,
-      bajoStock   : lista.filter(i => i.estado     === 'Bajo Stock').length,
+      herramientas: lista.filter(i => i.tipoInsumo === 4).length,
+      medicos     : lista.filter(i => i.tipoInsumo === 1).length,
+      epp         : lista.filter(i => i.tipoInsumo === 2).length,
+      // 🔥 Se cuenta por la regla matemática combinada (umbral dinámico por
+      // clasificación), no por el texto de ESTADO — así el KPI nunca cuenta
+      // falsos positivos (p. ej. 5 motosierras ya no son "alerta").
+      bajoStock   : lista.filter(i => this.esStockBajo(i)).length,
     };
   }
 
@@ -162,7 +164,7 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onEdit(insumo: Insumo): void {
-    this.openForm(insumo); // El insumo ya lleva la marca y modelo ocultos
+    this.openForm(insumo);
   }
 
   onDelete(insumo: Insumo): void {
@@ -184,36 +186,33 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
         error: (err) => {
           this.deletingId = null;
           this.cdr.markForCheck();
-          this.snackBar.open(
-            err.status === 409 ? 'No se puede eliminar: tiene registros asociados.' : 'Error al eliminar.',
-            'OK', { duration: 5000 },
-          );
+          // 🔥 Prioriza el mensaje real del backend (p. ej. "Cámbielo a estado De Baja")
+          const msg = err?.error?.message || 'Error al eliminar el registro.';
+          this.snackBar.open(msg, 'OK', { duration: 5000 });
         },
       });
     });
   }
 
-  // ════════════════════════════════════════════════════════════
-  //  HELPERS DE PRESENTACIÓN (Actualizados para Herramienta, Médico y EPP)
-  // ════════════════════════════════════════════════════════════
-  getTipoIcon(tipo?: string): string {
-    if (tipo === 'Herramienta') return 'construction';
-    if (tipo === 'Insumo Médico' || tipo === 'Médico') return 'local_hospital';
-    if (tipo === 'EPP') return 'security';
+  // 🔥 TRADUCTORES VISUALES: id_tipo_insumo (FK numérica) → ícono/etiqueta/clase
+  getTipoIcon(tipo?: number | null): string {
+    if (tipo === 4) return 'construction';
+    if (tipo === 1) return 'local_hospital';
+    if (tipo === 2) return 'security';
     return 'inventory_2';
   }
 
-  // 🔥 TRADUCTOR VISUAL: Expande el acrónimo EPP para mejorar la usabilidad en la interfaz
-  getTipoLabel(tipo?: string): string {
-    if (tipo === 'EPP') return 'Protección (EPP)';
-    if (tipo === 'Médico') return 'Insumo Médico'; // Mapeo por compatibilidad de registros antiguos
-    return tipo || '—';
+  getTipoLabel(tipo?: number | null): string {
+    if (tipo === 2) return 'Protección (EPP)';
+    if (tipo === 1) return 'Insumo Médico';
+    if (tipo === 4) return 'Herramienta';
+    return '—';
   }
 
-  getTipoClass(tipo?: string): string {
-    if (tipo === 'Herramienta') return 'badge-herramienta';
-    if (tipo === 'Insumo Médico' || tipo === 'Médico') return 'badge-medico';
-    if (tipo === 'EPP') return 'badge-rescate'; // Reusamos el color naranja del antiguo rescate
+  getTipoClass(tipo?: number | null): string {
+    if (tipo === 4) return 'badge-herramienta';
+    if (tipo === 1) return 'badge-medico';
+    if (tipo === 2) return 'badge-rescate';
     return 'badge-default';
   }
 
@@ -230,14 +229,13 @@ export class InsumosListComponent implements OnInit, AfterViewInit, OnDestroy {
     return map[estado ?? ''] ?? 'badge-default';
   }
 
-  getStockClass(stock: number): string {
-    if (stock === 0)  return 'stock-cero';
-    if (stock < 10)   return 'stock-bajo';
-    if (stock < 50)   return 'stock-medio';
+  getStockClass(stock: number, tipoInsumo?: number | null): string {
+    if (stock <= 0) return 'stock-cero';
+    if (stock < this.umbralBajoStockPorTipo(tipoInsumo ?? null)) return 'stock-bajo';
+    if (stock < 50) return 'stock-medio';
     return 'stock-ok';
   }
 
-  // Fix NG8107 para el HTML
   getRowNumber(indexInPage: number): number {
     if (!this.paginator) return indexInPage + 1;
     return this.paginator.pageIndex * this.paginator.pageSize + indexInPage + 1;

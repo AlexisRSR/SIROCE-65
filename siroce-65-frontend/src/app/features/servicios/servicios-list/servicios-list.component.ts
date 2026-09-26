@@ -1,5 +1,6 @@
 // src/app/features/servicios/servicios-list/servicios-list.component.ts
 import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { FormGroup, FormControl } from '@angular/forms';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatPaginator }       from '@angular/material/paginator';
 import { MatSort }            from '@angular/material/sort';
@@ -31,12 +32,19 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
   deletingId  : number | null = null;
   filterValue  = '';
 
+  // 🔥 Filtro por rango de fechas, en tiempo real junto con el buscador de texto
+  rangoFechas = new FormGroup({
+    inicio: new FormControl<Date | null>(null),
+    fin   : new FormControl<Date | null>(null),
+  });
+  maxDate = new Date();
+
   get isAdmin(): boolean {
     const rolGuardado = localStorage.getItem('siroce65_rol');
     return rolGuardado === 'ADMIN'; 
   }
 
-  stats = { total: 0, hoy: 0, estaSemana: 0, esteMes: 0 };
+  stats = { total: 0, hoy: 0, estaSemana: 0, esteMes: 0, anonimas: 0 };
   private subs = new Subscription();
 
   constructor(
@@ -50,6 +58,10 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
   ngOnInit(): void {
     this.configurarDataSource();
     this.loadServicios();
+
+    // 🔥 Cada cambio en el rango de fechas re-filtra en tiempo real (sin botón "Aplicar")
+    const subFechas = this.rangoFechas.valueChanges.subscribe(() => this.aplicarFiltrosCombinados());
+    this.subs.add(subFechas);
   }
 
   ngAfterViewInit(): void {
@@ -73,14 +85,69 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
       }
     };
 
+    // 🔥 Filtro multi-criterio: el filter de MatTableDataSource es un solo string,
+    // así que viajan texto + fechas empaquetados como JSON y se desempaquetan aquí.
     this.dataSource.filterPredicate = (data: any, filter: string): boolean => {
+      const criterios = JSON.parse(filter);
+
       const haystack = [
         data.descripcion, data.tipoServicioNombre, data.direccionServicio,
         data.fechaServicio, data.nombreSolicitante, data.telefonoSolicitante, data.estado,
-        data.motivoCancelado 
+        data.motivoCancelado
       ].join(' ').toLowerCase();
-      return haystack.includes(filter.trim().toLowerCase());
+      const matchTexto = haystack.includes(criterios.texto || '');
+
+      // 🔥 Rango de fechas: comparación numérica de objetos Date, no de strings.
+      // Solo se aplica si ambos extremos del rango están seleccionados.
+      let matchFecha = true;
+      if (criterios.inicio && criterios.fin && data.fechaServicio) {
+        const fechaRegistro = this.parseFechaLocal(data.fechaServicio);
+        fechaRegistro.setHours(0, 0, 0, 0);
+
+        // criterios.inicio/fin llegaron como ISO string (JSON.stringify serializa
+        // Date con .toJSON()); new Date(iso) reconstruye el mismo instante exacto.
+        const desde = new Date(criterios.inicio);
+        desde.setHours(0, 0, 0, 0);
+        const hasta = new Date(criterios.fin);
+        hasta.setHours(0, 0, 0, 0);
+
+        matchFecha = fechaRegistro.getTime() >= desde.getTime() && fechaRegistro.getTime() <= hasta.getTime();
+      }
+
+      return matchTexto && matchFecha;
     };
+
+    // 🔥 MatTableDataSource arranca con filter='' por defecto. Si `dataSource.data`
+    // se asigna (en loadServicios) antes de que aplicarFiltrosCombinados() corra por
+    // primera vez, el predicate recibiría ese '' y JSON.parse('') lanzaría un error.
+    this.dataSource.filter = JSON.stringify({ texto: '', inicio: null, fin: null });
+  }
+
+  /**
+   * Parsea 'YYYY-MM-DD' como fecha LOCAL a medianoche. `new Date('YYYY-MM-DD')`
+   * lo interpreta como UTC medianoche, lo que en husos horarios negativos
+   * (p. ej. Guatemala, UTC-6) retrocede un día al aplicar luego setHours(0,0,0,0).
+   */
+  private parseFechaLocal(fechaStr: string): Date {
+    const [year, month, day] = fechaStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  /** Único punto de entrada para (re)aplicar texto + fechas y sincronizar KPIs con lo visible en la tabla. */
+  private aplicarFiltrosCombinados(): void {
+    const filtroObj = {
+      texto : this.filterValue.trim().toLowerCase(),
+      inicio: this.rangoFechas.value.inicio,
+      fin   : this.rangoFechas.value.fin,
+    };
+    this.dataSource.filter = JSON.stringify(filtroObj);
+    this.dataSource.paginator?.firstPage();
+    this.calcularEstadisticas(this.dataSource.filteredData);
+    this.cdr.markForCheck();
+  }
+
+  clearRangoFechas(): void {
+    this.rangoFechas.reset({ inicio: null, fin: null });
   }
 
   loadServicios(): void {
@@ -91,45 +158,53 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
       next: (res) => {
         const lista = res.ok
           ? (res.data as any[]).map((raw: any) => {
-              
-              const tieneUnidad = !!(raw.UNIDAD_DESTACADA && raw.UNIDAD_DESTACADA !== 'No asignada');
+
+              // 🔥 3NF: unidad/piloto/personal ya no son texto en TB_SERVICIOS —
+              // se derivan del JOIN con detalle_vehiculo/detalle_bombero.
+              const vehiculosAsignados = raw.vehiculosAsignados || [];
+              const bomberosAsignados  = raw.bomberosAsignados || [];
+              const bomberoPiloto      = bomberosAsignados.find((b: any) => b.DetalleBombero?.es_piloto);
+              const personalSinPiloto  = bomberosAsignados.filter((b: any) => !b.DetalleBombero?.es_piloto);
+
+              const unidadDestacadaTexto = vehiculosAsignados.length > 0
+                ? vehiculosAsignados.map((v: any) => `${v.PLACA} - ${v.MARCA}`).join(', ')
+                : 'No asignada';
+              const pilotoTexto = bomberoPiloto
+                ? `${bomberoPiloto.persona?.NOMBRE} ${bomberoPiloto.persona?.APELLIDO}`
+                : 'No asignado';
+              const personalDestacadoTexto = personalSinPiloto.length > 0
+                ? personalSinPiloto.map((b: any) => `${b.persona?.NOMBRE} ${b.persona?.APELLIDO}`).join(', ')
+                : 'Personal de turno';
+
+              // 🔥 3NF: el(los) paciente(s) ahora vienen del JOIN con tb_pacientes
+              const pacientes = raw.pacientes || [];
+              const pacientePrincipal = pacientes[0] || null;
+
+              const tieneUnidad = vehiculosAsignados.length > 0;
               const tieneInformeFinal = !!(raw.OBSERVACIONES_FINALES && String(raw.OBSERVACIONES_FINALES).trim() !== '');
-              
-              let obsFinales = raw.OBSERVACIONES_FINALES || '';
-              let jefeTurnoStr = '';
-              
-              if (obsFinales.includes('[FIRMA VOBO]:')) {
-                 const parts = obsFinales.split('[FIRMA VOBO]:');
-                 obsFinales = parts[0].trim();
-                 jefeTurnoStr = parts[1] ? parts[1].trim() : '';
-              } else if (obsFinales.includes('[JEFE DE TURNO]:')) {
-                 const parts = obsFinales.split('[JEFE DE TURNO]:');
-                 obsFinales = parts[0].trim();
-                 jefeTurnoStr = parts[1] ? parts[1].trim() + ' | Jefe de Turno' : '';
-              }
+              const obsFinales = raw.OBSERVACIONES_FINALES || '';
 
-              let estadoActivo = raw.ESTADO || raw.estado || 'Pendiente'; 
-              let motivoCancelado = '';
+              // 🔥 3NF: la firma de Vo.Bo. ya viene como asociación (firmaVobo → persona/cargo),
+              // ya no se extrae de un marcador [FIRMA VOBO]:/[JEFE DE TURNO]: en el texto.
+              const firmaVobo = raw.firmaVobo || null;
+              const jefeTurnoStr = firmaVobo?.persona
+                ? `${firmaVobo.persona.NOMBRE} ${firmaVobo.persona.APELLIDO}${firmaVobo.cargo?.CARGO ? ' | ' + firmaVobo.cargo.CARGO : ''}`
+                : '';
 
-              // 🔥 AHORA SE LLAMA SOLO "Cancelada" Y EXTRAE TODO EL TEXTO PARA LA BURBUJA
-              if (obsFinales.includes('[CANCELADO / FALSA ALARMA]:')) {
-                estadoActivo = 'Cancelada'; 
-                const regex = /\[CANCELADO \/ FALSA ALARMA\]: (.*?)( \- (.*))?(\n\n|$)/;
-                const match = obsFinales.match(regex);
-                if (match) {
-                  motivoCancelado = match[1]?.trim() || '';
-                  if (match[3]) {
-                    motivoCancelado += ` - ${match[3].trim()}`; // Añade la justificación escrita por el despachador
-                  }
-                }
-              } 
-              else {
+              // 🔥 3NF: ES_FALSA_ALARMA/MOTIVO_CANCELACION son columnas propias — ya no se
+              // detecta la cancelación buscando [CANCELADO / FALSA ALARMA]: en el texto.
+              let estadoActivo = raw.ESTADO || raw.estado || 'Pendiente';
+              const motivoCancelado = raw.MOTIVO_CANCELACION || '';
+
+              if (raw.ES_FALSA_ALARMA) {
+                estadoActivo = 'Cancelada';
+              } else {
                 if (!raw.HORA_SALIDA && !raw.HORA_ENTRADA) {
-                    estadoActivo = 'Pendiente'; 
+                    estadoActivo = 'Pendiente';
                 } else if (raw.HORA_SALIDA && !raw.HORA_ENTRADA) {
-                    estadoActivo = 'En Atención'; 
+                    estadoActivo = 'En Atención';
                 } else if (raw.HORA_SALIDA && raw.HORA_ENTRADA) {
-                    estadoActivo = tieneInformeFinal ? 'Finalizada' : 'Redactando Informe'; 
+                    estadoActivo = tieneInformeFinal ? 'Finalizada' : 'Redactando Informe';
                 }
               }
 
@@ -139,27 +214,38 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
                 descripcion        : raw.DESCRIPCION       ?? '',
                 fechaServicio      : raw.FECHA_SERVICIO    ?? '',
                 direccionServicio  : raw.DIRECCION_SERVICIO ?? '',
-                idSolicitante      : raw.ID_SOLICITANTE    ?? 0,
-                nombreSolicitante  : raw.NOMBRE_SOLICITANTE ?? '', 
+                nombreSolicitante  : raw.NOMBRE_SOLICITANTE ?? '',
                 telefonoSolicitante: raw.TELEFONO_SOLICITANTE ?? '', 
                 tipoServicioNombre : raw.tipoServicio?.TIPO_SERVICIO ?? '—',
                 
                 estado             : estadoActivo, 
                 motivoCancelado    : motivoCancelado, 
                 
-                tieneCierre        : tieneUnidad, 
+                tieneCierre        : tieneUnidad,
                 horaSalida         : raw.HORA_SALIDA,
                 horaEntrada        : raw.HORA_ENTRADA,
-                nombrePaciente     : raw.NOMBRE_PACIENTE || 'No registrado',
-                edadPaciente       : raw.EDAD_PACIENTE || 0,
-                fallecido          : raw.FALLECIDO || 'NO',
-                acompanante        : raw.ACOMPANANTE || 'N/A',
-                lugarTraslado      : raw.LUGAR_TRASLADO || 'N/A',
-                unidadDestacada    : raw.UNIDAD_DESTACADA || 'No asignada',
-                piloto             : raw.PILOTO || 'No asignado',
-                personalDestacado  : raw.PERSONAL_DESTACADO || 'Personal de turno',
-                observacionesFinales: obsFinales, 
-                jefeTurno          : jefeTurnoStr
+                pacientes          : pacientes,
+                nombrePaciente     : pacientePrincipal?.NOMBRE_PACIENTE || 'No registrado',
+                edadPaciente       : pacientePrincipal?.EDAD_PACIENTE || 0,
+                fallecido          : pacientePrincipal?.FALLECIDO || 'NO',
+                acompanante        : pacientePrincipal?.ACOMPANANTE || 'N/A',
+                lugarTraslado      : pacientePrincipal?.LUGAR_TRASLADO || 'N/A',
+                unidadDestacada    : unidadDestacadaTexto,
+                piloto             : pilotoTexto,
+                personalDestacado  : personalDestacadoTexto,
+                vehiculosAsignados : vehiculosAsignados,
+                bomberosAsignados  : bomberosAsignados,
+                observacionesFinales: obsFinales,
+                jefeTurno          : jefeTurnoStr,
+                idFirmaVobo        : raw.ID_FIRMA_VOBO ?? firmaVobo?.ID_BOMBERO ?? null,
+                // 🔥 raw.insumosUtilizados es el alias real de la asociación N:M
+                // (Servicio.belongsToMany(Insumo, {as:'insumosUtilizados'})); cada
+                // ítem trae la cantidad anidada en DetalleInsumoServicio (through).
+                insumos            : (raw.insumosUtilizados || []).map((i: any) => ({
+                  id_insumo: i.ID_INSUMO,
+                  nombre   : i.NOMBRE,
+                  cantidad : i.DetalleInsumoServicio?.cantidad_utilizada ?? 0,
+                })),
               };
             })
           : [];
@@ -167,7 +253,7 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
         lista.sort((a: any, b: any) => b.id - a.id);
 
         this.dataSource.data = lista;
-        this.calcularEstadisticas(lista);
+        this.aplicarFiltrosCombinados();
         this.isLoading = false;
         this.cdr.markForCheck();
       },
@@ -192,22 +278,30 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
     lunes.setDate(hoyLocal.getDate() - diaSemana);
     const lunesISO = lunes.toISOString().split('T')[0];
 
+    // 🔥 "Anónima": sin nombre de solicitante registrado, o registrado literalmente como "Anónimo"
+    const esAnonima = (s: any): boolean => {
+      const nombre = String(s.nombreSolicitante || '').trim();
+      return nombre === '' || nombre.toLowerCase() === 'anónimo';
+    };
+
     this.stats = {
       total      : lista.length,
       hoy        : lista.filter(s => s.fechaServicio.startsWith(hoyISO)).length,
       estaSemana : lista.filter(s => s.fechaServicio >= lunesISO).length,
-      esteMes    : lista.filter(s => s.fechaServicio.startsWith(mesActual)).length, 
+      esteMes    : lista.filter(s => s.fechaServicio.startsWith(mesActual)).length,
+      anonimas   : lista.filter(esAnonima).length,
     };
   }
 
   applyFilter(event: Event): void {
-    this.filterValue       = (event.target as HTMLInputElement).value;
-    this.dataSource.filter = this.filterValue.trim().toLowerCase();
-    this.dataSource.paginator?.firstPage();
+    this.filterValue = (event.target as HTMLInputElement).value;
+    this.aplicarFiltrosCombinados();
   }
 
   clearFilter(inputEl: HTMLInputElement): void {
-    inputEl.value = ''; this.filterValue = ''; this.dataSource.filter = '';
+    inputEl.value = '';
+    this.filterValue = '';
+    this.aplicarFiltrosCombinados();
   }
 
   openForm(servicio: any | null = null): void {
@@ -215,9 +309,13 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
       width: '600px', maxWidth: '95vw', maxHeight: '90vh',
       panelClass: 'dark-dialog', data: servicio, disableClose: true,
     });
-    ref.afterClosed().subscribe((result?: { saved: boolean; action: 'create' | 'edit' }) => {
+    ref.afterClosed().subscribe((result?: { saved: boolean; action: 'create' | 'edit'; estadoFinal?: string }) => {
       if (result?.saved) {
-        const msg = result.action === 'create' ? '✅ Emergencia registrada.' : '✅ Informe guardado. Puede dar entrada.';
+        const msg = result.action === 'create'
+          ? '✅ Emergencia registrada.'
+          : (result.estadoFinal === 'Finalizada'
+            ? '✅ Informe guardado. Emergencia finalizada exitosamente.'
+            : '✅ Actualización guardada.');
         this.snackBar.open(msg, 'OK', { duration: 3500 });
         this.loadServicios();
       }
@@ -263,9 +361,9 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
   }
 
   private ejecutarCambioEstado(servicio: any, accion: 'SALIDA' | 'ENTRADA'): void {
-    const msjExito = accion === 'SALIDA' 
-      ? `▶️ Unidad en camino para emergencia #${servicio.id}` 
-      : `✅ Unidad de regreso. Emergencia FINALIZADA.`;
+    const msjExito = accion === 'SALIDA'
+      ? `▶️ Unidad en camino para emergencia #${servicio.id}`
+      : `✅ Unidad de regreso. Pendiente de informe.`;
 
     this.service.cambiarEstadoOperativo(servicio.id, accion).subscribe({
       next: () => {
@@ -291,15 +389,23 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
       let obsLimpia = servicio.observacionesFinales || servicio.descripcion || 'Sin observaciones registradas.';
       obsLimpia = obsLimpia.replace('[VÍCTIMAS ADICIONALES ATENDIDAS]:', 'Detalle de víctimas adicionales atendidas:');
 
-      const esServicioGeneral = (servicio.nombrePaciente === 'No registrado' || !servicio.nombrePaciente) && 
+      const esServicioGeneral = (servicio.nombrePaciente === 'No registrado' || !servicio.nombrePaciente) &&
                                 (servicio.lugarTraslado === 'N/A' || !servicio.lugarTraslado);
 
-      // 🔥 NUEVO: Lógica para estampar la etiqueta (FALLECIDO) en el paciente principal
-      let nombrePacienteImpresion = servicio.nombrePaciente || 'No registrado';
-      const esFallecido = servicio.fallecido && (servicio.fallecido.toUpperCase() === 'SI' || servicio.fallecido.toUpperCase() === 'SÍ');
-      
-      if (esFallecido && nombrePacienteImpresion !== 'No registrado') {
-        nombrePacienteImpresion += ' (FALLECIDO)';
+      // 🔥 3NF: si hay varias víctimas (tb_pacientes), se listan todas con su etiqueta (FALLECIDO)
+      const pacientesLista = Array.isArray(servicio.pacientes) ? servicio.pacientes : [];
+      let nombrePacienteImpresion = 'No registrado';
+      if (pacientesLista.length > 0) {
+        nombrePacienteImpresion = pacientesLista
+          .map((p: any) => {
+            const nombre = p.NOMBRE_PACIENTE?.trim() || 'Desconocido';
+            const fallecido = String(p.FALLECIDO || '').toUpperCase();
+            return (fallecido === 'SI' || fallecido === 'SÍ') ? `${nombre} (FALLECIDO)` : nombre;
+          })
+          .join(', ');
+      } else if (servicio.nombrePaciente && servicio.nombrePaciente !== 'No registrado') {
+        const esFallecido = servicio.fallecido && (servicio.fallecido.toUpperCase() === 'SI' || servicio.fallecido.toUpperCase() === 'SÍ');
+        nombrePacienteImpresion = esFallecido ? `${servicio.nombrePaciente} (FALLECIDO)` : servicio.nombrePaciente;
       }
 
       const datosParaPdf = {
@@ -319,10 +425,15 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
         paciente: nombrePacienteImpresion,
         traslado: servicio.lugarTraslado || 'N/A',
         personal: servicio.personalDestacado || 'Personal de turno',
-        jefeTurno: servicio.jefeTurno || '', 
+        jefeTurno: servicio.jefeTurno || '',
         observaciones: obsLimpia,
-        
-        esServicioGeneral: esServicioGeneral 
+
+        // 🔥 3NF: viene de ES_FALSA_ALARMA / MOTIVO_CANCELACION (columnas propias)
+        esFalsaAlarma: servicio.estado === 'Cancelada',
+        motivoCancelacion: servicio.motivoCancelado || '',
+        insumos: servicio.insumos,
+
+        esServicioGeneral: esServicioGeneral
       };
 
       this.reportePdf.generarInformeLlamada(datosParaPdf);
@@ -331,6 +442,15 @@ export class ServiciosListComponent implements OnInit, AfterViewInit, OnDestroy 
       console.error('🔥 ERROR CRÍTICO AL GENERAR PDF:', error);
       this.snackBar.open('Error al compilar los datos para el PDF.', 'OK', { duration: 4000 });
     }
+  }
+
+  /**
+   * 🔥 Regla de auditoría: una emergencia ya despachada (con hora de salida) o
+   * cancelada es irreversible — solo se puede eliminar recién creada o con
+   * recursos asignados pero aún sin marcar la salida.
+   */
+  puedeEliminar(servicio: any): boolean {
+    return !servicio.horaSalida && servicio.estado !== 'Cancelada';
   }
 
   onDelete(servicio: any): void {

@@ -18,17 +18,17 @@ export class LoginComponent implements OnInit, OnDestroy {
   isLoading    = false;
   hidePassword = true;
   errorMessage = '';
-  // 🔥 true cuando el 403 corresponde a un bloqueo temporal por fuerza bruta (OWASP)
+  // true cuando el 403 corresponde a un bloqueo temporal por fuerza bruta (OWASP)
   isAccountLocked = false;
 
-  // 🔥 NUEVO: Estado para el flujo de cambio de contraseña obligatorio (REQ-2.3)
+  // Estado para el flujo de cambio de contraseña obligatorio (REQ-2.3)
   isPasswordChangeMode = false;
   tempUserId: number | null = null;
   newPassword = '';
   confirmPassword = '';
   isChangingPassword = false;
 
-  // 🔥 NUEVO: Requisitos de la nueva contraseña, evaluados en tiempo real
+  // Requisitos de la nueva contraseña, evaluados en tiempo real
   passwordRequirements = {
     hasLength : false, // 12 a 15 caracteres
     hasUpper  : false, // Al menos una mayúscula
@@ -90,7 +90,7 @@ export class LoginComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.isLoading = false;
 
-        // 🔥 NUEVO: El backend exige cambio de contraseña obligatorio (no hay token que guardar)
+        //El backend exige cambio de contraseña obligatorio (no hay token que guardar)
         if (res && res.requirePasswordChange) {
           this.isPasswordChangeMode = true;
           this.tempUserId = res.id_usuario ?? null;
@@ -115,9 +115,11 @@ export class LoginComponent implements OnInit, OnDestroy {
             this.errorMessage = backendMessage || 'Usuario y/o contraseña incorrecta.';
             break;
           case 403:
-            this.errorMessage = backendMessage || 'Acceso denegado. Contacte al administrador.';
-            // Solo el bloqueo temporal por fuerza bruta debe verse como alerta crítica
-            this.isAccountLocked = !!backendMessage && backendMessage.toLowerCase().includes('bloqueada');
+            // Manejo de bloqueo de cuenta por límite de intentos fallidos
+            this.isAccountLocked = !!err.error?.accountLocked;
+            this.errorMessage = this.isAccountLocked
+              ? 'Cuenta bloqueada por múltiples intentos fallidos. Por favor, comunícate con el Administrador o Jefe de Turno para solicitar una nueva contraseña.'
+              : (backendMessage || 'Acceso denegado. Contacte al administrador.');
             break;
           case 400: this.errorMessage = backendMessage || 'Estructura de datos inválida en la petición.'; break;
           case 0:   this.errorMessage = 'No se puede establecer conexión con el servidor Node.js en el puerto 3000.'; break;
@@ -128,7 +130,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     });
   }
 
-  // 🔥 NUEVO: Evalúa en tiempo real los 5 requisitos de la nueva contraseña
+  //Evalúa en tiempo real los 5 requisitos de la nueva contraseña
   onPasswordInput(password: string): void {
     this.passwordRequirements = {
       hasLength : password.length >= 12 && password.length <= 15,
@@ -139,13 +141,13 @@ export class LoginComponent implements OnInit, OnDestroy {
     };
   }
 
-  // 🔥 NUEVO: true solo cuando las 5 reglas de complejidad se cumplen
+  // Retorna true solo si se cumplen todas las reglas de complejidad
   get isPasswordValid(): boolean {
     const r = this.passwordRequirements;
     return r.hasLength && r.hasUpper && r.hasLower && r.hasNumber && r.hasSpecial;
   }
 
-  // 🔥 NUEVO: Envío del formulario de cambio de contraseña obligatorio (REQ-2.3)
+  // Envío del formulario de cambio de contraseña obligatorio (REQ-2.3)
   onSubmitNewPassword(): void {
     if (!this.newPassword.trim() || !this.confirmPassword.trim()) {
       this.errorMessage = 'Debe completar ambos campos de contraseña.';
@@ -189,7 +191,7 @@ export class LoginComponent implements OnInit, OnDestroy {
     });
   }
 
-  // 🔥 NUEVO: Regresa al formulario de login normal y limpia el estado del cambio obligatorio
+  // Regresa al formulario de login normal y limpia el estado del cambio obligatorio
   cancelPasswordChange(): void {
     this.isPasswordChangeMode = false;
     this.tempUserId = null;
@@ -227,9 +229,9 @@ export class LoginComponent implements OnInit, OnDestroy {
         this.dialog.closeAll(); 
         this.cdr.detectChanges(); 
         
-        this.snackBar.open('✅ Solicitud de recuperación procesada correctamente.', 'OK', { 
+        this.snackBar.open('✅ Solicitud enviada. Comunícate con el administrador para recibir tu nueva clave.', 'OK', {
           duration: 6000,
-          panelClass: ['success-snackbar'] 
+          panelClass: ['success-snackbar']
         });
       },
       error: (err) => {

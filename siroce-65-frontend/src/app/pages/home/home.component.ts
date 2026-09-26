@@ -110,7 +110,10 @@ export class HomeComponent implements OnInit {
     { title: 'Insumos',          subtitle: 'Inventario de almacén',  icon: 'inventory_2',           color: '#2e7d32', route: '/insumos'           },
     // 🔥 Le agregamos el candado de seguridad a Estadísticas
     { title: 'Estadísticas',     subtitle: 'Gráficos y análisis',    icon: 'bar_chart',             color: '#6a1540', route: '/estadisticas', roles: ['ADMIN', 'JEFE'] },
-    { title: 'Reportes',         subtitle: 'Consolidados y PDFs',    icon: 'picture_as_pdf',        color: '#37474f', route: '/reportes'          }
+    { title: 'Reportes',         subtitle: 'Consolidados y PDFs',    icon: 'picture_as_pdf',        color: '#37474f', route: '/reportes'          },
+    // 🔥 NUEVO: Accesos exclusivos de Administración (mismo mecanismo de `roles` que ya usa Estadísticas)
+    { title: 'Usuarios',         subtitle: 'Gestión de accesos',     icon: 'manage_accounts',       color: '#1a237e', route: '/gestion-usuarios', roles: ['ADMIN'] },
+    { title: 'Bitácora',         subtitle: 'Log de auditoría',       icon: 'fact_check',            color: '#263238', route: '/bitacora',         roles: ['ADMIN'] },
   ];
 
   constructor(

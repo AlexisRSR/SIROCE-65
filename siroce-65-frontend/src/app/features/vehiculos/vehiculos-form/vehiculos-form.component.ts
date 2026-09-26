@@ -1,5 +1,5 @@
-import { Component, OnInit, Inject, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, AbstractControl } from '@angular/forms';
+import { Component, OnInit, Inject, ChangeDetectionStrategy, ChangeDetectorRef, ViewChild, ElementRef } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, AbstractControl, ValidationErrors } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { VehiculosService, Vehiculo, TipoVehiculo, EstadoVehiculo } from '../../../core/services/vehiculos.service';
 
@@ -12,6 +12,10 @@ import { VehiculosService, Vehiculo, TipoVehiculo, EstadoVehiculo } from '../../
 })
 export class VehiculosFormComponent implements OnInit {
 
+  // 🔥 Contenedor scrolleable del modal — se usa para llevar la vista al
+  // mensaje de error cuando el usuario está desplazado hacia abajo.
+  @ViewChild('scrollContainer') scrollContainer!: ElementRef<HTMLElement>;
+
   form     !: FormGroup;
   isEditMode = false;
   isSaving   = false;
@@ -19,6 +23,14 @@ export class VehiculosFormComponent implements OnInit {
 
   tipos  : TipoVehiculo[]   = [];
   estados: EstadoVehiculo[]  = [];
+
+  // 🔥 Tope para el datepicker de Fecha de Ingreso: no se permiten fechas futuras
+  readonly fechaHoy: Date = new Date();
+
+  // 🔥 Tope lógico para Año del Modelo: permite registrar el modelo del año
+  // entrante (p. ej. 2027 estando en 2026) pero bloquea años irreales.
+  readonly anioMinimo: number = 1950;
+  readonly anioMaximo: number = new Date().getFullYear() + 1;
 
   // 🔥 Catálogo actualizado con las correcciones ortográficas
   private readonly TIPOS_DEFAULT: TipoVehiculo[] = [
@@ -52,23 +64,42 @@ export class VehiculosFormComponent implements OnInit {
     this.buildForm();
     this.loadCatalogs();
 
+    // 🔥 El Número de Unidad ya no lo escribe el operador: el backend lo
+    // autogenera (correlativo B-101, B-102...) e ignora cualquier valor que
+    // se le envíe. El control queda deshabilitado; solo se muestra su valor.
+    this.f['NUMERO_UNIDAD'].disable({ emitEvent: false });
+
     if (this.isEditMode && this.data) {
       this.patchForm(this.data);
+    } else {
+      // Alta nueva: pedimos al backend cuál sería el próximo número, solo
+      // como vista previa — el valor definitivo lo decide el servidor al guardar.
+      this.form.patchValue({ NUMERO_UNIDAD: 'Calculando...' });
+      this.service.getSiguienteNumero().subscribe({
+        next : (res) => {
+          this.form.patchValue({ NUMERO_UNIDAD: res.ok ? res.data.numeroUnidad : '' });
+          this.cdr.markForCheck();
+        },
+        error: () => {
+          this.form.patchValue({ NUMERO_UNIDAD: '' });
+          this.cdr.markForCheck();
+        },
+      });
     }
   }
 
   private buildForm(): void {
     this.form = this.fb.group({
-      NUMERO_UNIDAD      : ['', [Validators.required, Validators.maxLength(20)]], // 🔥 Nuevo y Obligatorio
+      NUMERO_UNIDAD      : ['', [Validators.maxLength(20)]], // 🔥 Autogenerado por el backend — ya no es obligatorio a mano
       MARCA              : ['', [Validators.required, Validators.minLength(2), Validators.maxLength(50)]],
       MODELO             : ['', [Validators.required, Validators.minLength(1), Validators.maxLength(50)]],
       PLACA              : ['', [Validators.required, Validators.minLength(3), Validators.maxLength(20)]],
-      KILOMETRAJE_ACTUAL : [0,  [Validators.required, Validators.min(0)]],
+      KILOMETRAJE_ACTUAL : [null, [Validators.required, Validators.min(0)]],
       ID_TIPO_V          : [null, Validators.required],
       ID_ESTADO_V        : [null, Validators.required],
-      FECHA_INGRESO      : [null], // 🔥 Nuevo (Opcional)
+      FECHA_INGRESO      : [null, [this.fechaNoFuturaValidator]], // 🔥 Opcional, pero si se llena no puede ser futura
       OBSERVACIONES      : [''],
-      ANIO               : [null, [Validators.min(1950), Validators.max(2100)]], // Validación de año lógico
+      ANIO               : [null, [Validators.min(this.anioMinimo), Validators.max(this.anioMaximo)]], // Validación de año lógico
       CHASIS             : ['', [Validators.maxLength(50)]],
       MOTOR              : ['', [Validators.maxLength(50)]] 
     });
@@ -95,6 +126,15 @@ export class VehiculosFormComponent implements OnInit {
   get f(): { [key: string]: AbstractControl } {
     return this.form.controls;
   }
+
+  // 🔥 Validador: rechaza fechas posteriores a hoy (permite el día de hoy completo)
+  private readonly fechaNoFuturaValidator = (control: AbstractControl): ValidationErrors | null => {
+    if (!control.value) return null;
+    const fecha = new Date(control.value);
+    const finDeHoy = new Date();
+    finDeHoy.setHours(23, 59, 59, 999);
+    return fecha > finDeHoy ? { fechaFutura: true } : null;
+  };
 
   private loadCatalogs(): void {
     this.service.getTipos().subscribe({
@@ -151,14 +191,19 @@ export class VehiculosFormComponent implements OnInit {
       },
       error: (err) => {
         this.isSaving = false;
-        this.errorMsg = err.status === 409
-          ? 'La placa o el Número de Unidad ya están registrados. Verifique.'
-          : err.status === 0
-            ? 'Sin conexión con el servidor.'
-            : `Error al guardar (${err.status}). Intente nuevamente.`;
+        this.errorMsg = err.status === 0
+          ? 'Sin conexión con el servidor.'
+          : err.error?.message || `Error al guardar (${err.status}). Intente nuevamente.`;
         this.cdr.markForCheck();
+        this.scrollToError();
       },
     });
+  }
+
+  // 🔥 Lleva el scroll del modal hasta arriba para que el usuario vea la
+  // alerta roja del error, aunque esté desplazado hasta el final del formulario.
+  private scrollToError(): void {
+    this.scrollContainer?.nativeElement.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   // 🔥 BLOQUEO FÍSICO PARA KILOMETRAJE (Solo números y punto)
@@ -166,6 +211,16 @@ export class VehiculosFormComponent implements OnInit {
     const charCode = (event.which) ? event.which : event.keyCode;
     // Permite código 46 (punto) y del 48 al 57 (números)
     if (charCode !== 46 && charCode > 31 && (charCode < 48 || charCode > 57)) {
+      event.preventDefault();
+      return false;
+    }
+    return true;
+  }
+
+  // 🔥 BLOQUEO FÍSICO PARA AÑO (solo dígitos enteros, sin punto decimal)
+  soloNumerosEnteros(event: KeyboardEvent): boolean {
+    const charCode = (event.which) ? event.which : event.keyCode;
+    if (charCode > 31 && (charCode < 48 || charCode > 57)) {
       event.preventDefault();
       return false;
     }

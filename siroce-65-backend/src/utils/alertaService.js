@@ -4,19 +4,14 @@
 // ══════════════════════════════════════════════════════════════
 'use strict';
 
-const nodemailer = require('nodemailer');
+const { enviarCorreo } = require('../Config/mailer');
 
-const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.EMAIL_PORT || '465'),
-  secure: true,
-  auth: {
-    user: process.env.EMAIL_USER || 'tu_correo_de_sistema@gmail.com', 
-    pass: process.env.EMAIL_PASS || 'tu_contrasena_de_aplicacion',
-  },
-});
+const correoOficial = process.env.CORREO_ADMINISTRADOR;
 
-const correoOficial = 'siroce65.notificaciones@gmail.com'; 
+// 🔥 id_tipo_insumo es la FK numérica real de TB_INSUMOS (no existe una
+// columna TIPO_INSUMO de texto) — ver models/Insumo.js / insumoController.js.
+const TIPO_INSUMO_LABELS = { 1: 'Insumo Médico', 2: 'Equipo de Protección (EPP)', 4: 'Herramienta' };
+const getTipoInsumoLabel = (idTipo) => TIPO_INSUMO_LABELS[idTipo] || 'Sin categoría';
 
 /**
  * Envía una alerta urgente cuando una unidad cambia a un estado inoperativo.
@@ -57,14 +52,12 @@ const enviarAlertaVehiculo = async (vehiculo) => {
       </div>
     `;
 
-    const mailOptions = {
-      from: `"SIROCE-65 Operaciones" <${transporter.options.auth.user}>`,
-      to: correoOficial,
-      subject: `⚠️ AVISO: ${tipoUnidad} ${vehiculo.MARCA} no disponible (${estadoCritico})`,
-      html: htmlBody
-    };
-
-    await transporter.sendMail(mailOptions);
+    await enviarCorreo({
+      para: correoOficial,
+      asunto: `⚠️ AVISO: ${tipoUnidad} ${vehiculo.MARCA} no disponible (${estadoCritico})`,
+      html: htmlBody,
+      nombreRemitente: 'SIROCE-65 Operaciones',
+    });
     console.log(`[AlertaService] ✅ Alerta vehicular enviada con éxito.`);
   } catch (error) {
     console.error(`[AlertaService] ❌ Error al enviar la alerta:`, error.message);
@@ -92,7 +85,7 @@ const enviarAlertaInsumo = async (insumo) => {
             </tr>
             <tr>
               <td style="padding: 10px; border: 1px solid #e0e0e0; font-weight: bold;">Categoría:</td>
-              <td style="padding: 10px; border: 1px solid #e0e0e0;">${insumo.TIPO_INSUMO}</td>
+              <td style="padding: 10px; border: 1px solid #e0e0e0;">${getTipoInsumoLabel(insumo.id_tipo_insumo)}</td>
             </tr>
             <tr>
               <td style="padding: 10px; border: 1px solid #e0e0e0; font-weight: bold;">Unidades Restantes:</td>
@@ -107,14 +100,12 @@ const enviarAlertaInsumo = async (insumo) => {
       </div>
     `;
 
-    const mailOptions = {
-      from: `"SIROCE-65 Almacén" <${transporter.options.auth.user}>`,
-      to: correoOficial,
-      subject: `📦 STOCK BAJO: Solo quedan ${insumo.STOCK} unidades de ${insumo.NOMBRE}`,
-      html: htmlBody
-    };
-
-    await transporter.sendMail(mailOptions);
+    await enviarCorreo({
+      para: correoOficial,
+      asunto: `📦 STOCK BAJO: Solo quedan ${insumo.STOCK} unidades de ${insumo.NOMBRE}`,
+      html: htmlBody,
+      nombreRemitente: 'SIROCE-65 Almacén',
+    });
     console.log(`[AlertaService] ✅ Alerta de insumo enviada con éxito.`);
   } catch (error) {
     console.error(`[AlertaService] ❌ Error al enviar la alerta de insumo:`, error.message);

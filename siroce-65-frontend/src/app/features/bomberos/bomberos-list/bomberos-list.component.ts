@@ -39,7 +39,9 @@ export class BomberosListComponent implements OnInit, AfterViewInit, OnDestroy {
   dataSource      = new MatTableDataSource<any>([]);
   
   // 🔥 2. CAMBIAMOS 'fechaIngreso' POR 'turno' EN LAS COLUMNAS VISIBLES
-  displayedColumns: string[] = ['num', 'nombre', 'grado', 'cargo', 'estado', 'turno', 'acciones'];
+  // 🔥 3. 'edad' es un atributo derivado de FECHA_NACIMIENTO — va justo después
+  // de 'nombre', que es donde se muestran el DPI y el teléfono en esta tabla.
+  displayedColumns: string[] = ['num', 'nombre', 'edad', 'grado', 'cargo', 'estado', 'turno', 'acciones'];
 
   isLoading  = false;
   deletingId : number | null = null;   
@@ -86,6 +88,15 @@ export class BomberosListComponent implements OnInit, AfterViewInit, OnDestroy {
       switch (property) {
         case 'nombre':
           return `${item.persona?.NOMBRE ?? ''} ${item.persona?.APELLIDO ?? ''}`.toLowerCase();
+        case 'edad': {
+          // 🔥 'edad' es un atributo derivado (no existe como columna en BD),
+          // así que MatSort no puede leerlo directo del objeto — se recalcula
+          // aquí y se convierte a número para que el orden sea numérico real
+          // (10, 9, 8...) y no alfabético ("10" antes que "9").
+          const edadStr = this.calcularEdad(item.persona?.FECHA_NACIMIENTO || item.FECHA_NACIMIENTO);
+          const edadNum = parseInt(edadStr, 10);
+          return isNaN(edadNum) ? -1 : edadNum; // -1 para que los 'N/D' queden siempre al final/inicio
+        }
         case 'grado':
           return item.grado?.GRADO?.toLowerCase() ?? '';
         case 'estado':
@@ -175,7 +186,7 @@ export class BomberosListComponent implements OnInit, AfterViewInit, OnDestroy {
       total      : lista.length,
       activos    : lista.filter(b => b.estado?.ESTADO?.toLowerCase() === 'activo').length,
       suspendidos: lista.filter(b => b.estado?.ESTADO?.toLowerCase() === 'suspendido').length,
-      bajas      : lista.filter(b => b.estado?.ESTADO?.toLowerCase() === 'baja').length,
+      bajas      : lista.filter(b => b.estado?.ESTADO?.toLowerCase() === 'de baja').length,
     };
   }
 
@@ -242,9 +253,8 @@ export class BomberosListComponent implements OnInit, AfterViewInit, OnDestroy {
         error: (err) => {
           this.deletingId = null;
           this.cdr.markForCheck();
-          const msg = err.status === 409
-            ? 'No se puede eliminar: el bombero tiene registros asociados.'
-            : 'Error al eliminar. Intente nuevamente.';
+          // 🔥 Prioriza el mensaje real del backend (p. ej. "Cámbielo a estado De Baja")
+          const msg = err?.error?.message || 'Error al eliminar el registro.';
           this.snackBar.open(msg, 'OK', { duration: 5000 });
         },
       });
@@ -257,12 +267,29 @@ export class BomberosListComponent implements OnInit, AfterViewInit, OnDestroy {
     return `${n}${a}`.toUpperCase() || '?';
   }
 
+  // 🔥 Atributo derivado: la edad no se guarda en BD, se calcula al vuelo
+  // a partir de tb_personas.FECHA_NACIMIENTO.
+  calcularEdad(fecha: string | null): string {
+    if (!fecha) return 'N/D';
+
+    const nacimiento = new Date(fecha);
+    if (isNaN(nacimiento.getTime())) return 'N/D';
+
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const aunNoCumple = hoy.getMonth() < nacimiento.getMonth() ||
+      (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate());
+    if (aunNoCumple) edad--;
+
+    return edad >= 0 ? `${edad}` : 'N/D';
+  }
+
   getEstadoClass(estado?: string): string {
     if (!estado) return 'badge-default';
     const map: Record<string, string> = {
       'activo'    : 'badge-activo',
       'suspendido': 'badge-suspendido',
-      'baja'      : 'badge-baja',
+      'de baja'   : 'badge-baja',
     };
     return map[estado.toLowerCase()] ?? 'badge-default';
   }

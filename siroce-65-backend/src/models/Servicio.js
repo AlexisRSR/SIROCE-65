@@ -45,43 +45,28 @@ const Servicio = sequelize.define(
       type     : DataTypes.DATE,
       allowNull: true,
     },
-    // 🔥 NUEVOS CAMPOS: INFORME DE LLAMADA OPERATIVA (CIERRE) 🔥
-    NOMBRE_PACIENTE: {
-      type     : DataTypes.STRING(150),
-      allowNull: true,
-    },
-    EDAD_PACIENTE: {
-      type     : DataTypes.INTEGER,
-      allowNull: true,
-    },
-    FALLECIDO: {
-      type        : DataTypes.STRING(2),
-      defaultValue: 'NO',
-    },
-    ACOMPANANTE: {
-      type     : DataTypes.STRING(150),
-      allowNull: true,
-    },
-    LUGAR_TRASLADO: {
-      type     : DataTypes.STRING(150),
-      allowNull: true,
-    },
-    UNIDAD_DESTACADA: {
-      type     : DataTypes.STRING(50),
-      allowNull: true,
-    },
-    PILOTO: {
-      type     : DataTypes.STRING(150),
-      allowNull: true,
-    },
-    PERSONAL_DESTACADO: {
-      type     : DataTypes.STRING(255),
-      allowNull: true,
-    },
+    // 🔥 3NF: los datos del paciente ahora viven en `tb_pacientes` (ver modelo Paciente),
+    // y la unidad/piloto/personal destacado se derivan de detalle_vehiculo / detalle_bombero.
     OBSERVACIONES_FINALES: {
       type     : DataTypes.TEXT,
       allowNull: true,
-    }
+    },
+
+    // 🔥 3NF: reemplazan a los marcadores de texto [CANCELADO...]/[FIRMA VOBO...]
+    // que antes vivían embebidos dentro de OBSERVACIONES_FINALES.
+    ES_FALSA_ALARMA: {
+      type        : DataTypes.BOOLEAN,
+      allowNull   : false,
+      defaultValue: false,
+    },
+    MOTIVO_CANCELACION: {
+      type     : DataTypes.STRING(255),
+      allowNull: true,
+    },
+    ID_FIRMA_VOBO: {
+      type     : DataTypes.INTEGER,
+      allowNull: true,
+    },
   },
   {
     tableName      : 'TB_SERVICIOS',

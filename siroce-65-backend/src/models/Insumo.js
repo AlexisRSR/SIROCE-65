@@ -26,15 +26,12 @@ const { sequelize } = require('../config/database');
 const Insumo = sequelize.define(
   'Insumo',
   {
-    // PK — ID_INSUMO INT NOT NULL AUTO_INCREMENT
     ID_INSUMO: {
       type         : DataTypes.INTEGER,
       primaryKey   : true,
       autoIncrement: true,
       allowNull    : false,
     },
-
-    // NOMBRE VARCHAR(150) NOT NULL
     NOMBRE: {
       type     : DataTypes.STRING(150),
       allowNull: false,
@@ -43,28 +40,15 @@ const Insumo = sequelize.define(
         len     : { args: [2, 150], msg: 'NOMBRE debe tener entre 2 y 150 caracteres.' },
       },
     },
-
-    // DESCRIPCION TEXT NULL
     DESCRIPCION: {
       type     : DataTypes.TEXT,
       allowNull: true,
       defaultValue: '',
     },
-
-    // TIPO_INSUMO VARCHAR(50) NOT NULL
-    TIPO_INSUMO: {
-      type     : DataTypes.STRING(50),
-      allowNull: false,
-      validate : {
-        isIn: {
-          // 🔥 Tesis: Se ampliaron los tipos para soportar el Catálogo Unificado
-          args: [['Insumo Médico', 'Herramienta', 'EPP', 'Médico', 'Rescate']],
-          msg : 'TIPO_INSUMO inválido.',
-        },
-      },
+    id_tipo_insumo: {
+      type     : DataTypes.INTEGER,
+      allowNull: true,
     },
-
-    // 🔥 NUEVOS CAMPOS DE LA TESIS (Opcionales para compatibilidad)
     MARCA: {
       type     : DataTypes.STRING(100),
       allowNull: true,
@@ -81,8 +65,6 @@ const Insumo = sequelize.define(
       type     : DataTypes.STRING(150),
       allowNull: true,
     },
-
-    // STOCK INT NOT NULL DEFAULT 0
     STOCK: {
       type        : DataTypes.INTEGER,
       allowNull   : false,
@@ -91,15 +73,12 @@ const Insumo = sequelize.define(
         min: { args: [0], msg: 'El STOCK no puede ser negativo.' },
       },
     },
-
-    // ESTADO VARCHAR(50) NOT NULL DEFAULT 'Activo'
     ESTADO: {
       type        : DataTypes.STRING(50),
       allowNull   : false,
       defaultValue: 'Activo',
       validate    : {
         isIn: {
-          // 🔥 Tesis: Se agregaron los estados de Herramientas
           args: [['Activo', 'Bajo Stock', 'Inactivo', 'Disponible', 'En Reparación', 'Prestado', 'De Baja']],
           msg : 'ESTADO inválido.',
         },
@@ -107,8 +86,8 @@ const Insumo = sequelize.define(
     },
   },
   {
-    tableName     : 'TB_INSUMOS',
-    timestamps    : false,
+    tableName      : 'TB_INSUMOS',
+    timestamps     : false,
     freezeTableName: true,
   }
 );

@@ -1,5 +1,4 @@
 import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
-// 🔥 Agregamos los "Modules" correctos para tablas en Standalone Components
 import { MatTableModule, MatTableDataSource } from '@angular/material/table'; 
 import { MatPaginatorModule, MatPaginator } from '@angular/material/paginator';
 import { MatSortModule, MatSort } from '@angular/material/sort';
@@ -23,14 +22,16 @@ import { UsuariosFormComponent } from '../usuarios-form/usuarios-form.component'
   templateUrl: './gestion-usuarios.component.html',
   styleUrls: ['./gestion-usuarios.component.scss'],
   standalone: true,
+  // Importación de submódulos de Angular Material para un Standalone Component
   imports: [
     CommonModule, MatIconModule, MatButtonModule, MatDialogModule, 
     MatFormFieldModule, MatInputModule, MatTooltipModule, MatCardModule, 
     MatProgressBarModule, 
-    MatTableModule,       // 🔥 Hace que <table mat-table> funcione
-    MatPaginatorModule,   // 🔥 Hace que funcione la paginación
-    MatSortModule         // 🔥 Hace que funcionen las flechas de ordenar
+    MatTableModule,       // Soporte para tablas de datos (mat-table)
+    MatPaginatorModule,   // Controles de paginación
+    MatSortModule         // Directivas de ordenamiento de columnas
   ],
+  // Optimización de rendimiento: La vista solo se renderiza cuando cambian los datos o se solicita explícitamente
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GestionUsuariosComponent implements OnInit, AfterViewInit, OnDestroy {
@@ -70,7 +71,9 @@ export class GestionUsuariosComponent implements OnInit, AfterViewInit, OnDestro
     this.subs.unsubscribe();
   }
 
+  // Configuración de los algoritmos personalizados de búsqueda y ordenamiento
   private configureDataSource(): void {
+    // Sobrescribe el ordenamiento por defecto para manejar propiedades anidadas
     this.dataSource.sortingDataAccessor = (item: any, property: string): string | number => {
       switch (property) {
         case 'nombre': return item.nombreCompleto?.toLowerCase() || '';
@@ -81,6 +84,7 @@ export class GestionUsuariosComponent implements OnInit, AfterViewInit, OnDestro
       }
     };
 
+    // Filtro global multidimensional (busca en múltiples columnas simultáneamente)
     this.dataSource.filterPredicate = (data: any, filter: string): boolean => {
       const haystack = [
         data.nombreCompleto,
@@ -95,17 +99,15 @@ export class GestionUsuariosComponent implements OnInit, AfterViewInit, OnDestro
 
   loadUsuarios(): void {
     this.isLoading = true;
-    this.cdr.markForCheck();
+    this.cdr.markForCheck(); // Notifica al ChangeDetector en estrategia OnPush
 
     const sub = this.usuariosService.obtenerUsuarios().subscribe({
       next: (data: any) => {
+        // Normalización y mapeo de datos provenientes del backend
         const listaNormalizada = data.map((u: any) => ({
           id_usuario: u.id_usuario,
-          
-          // 🔥 Recibimos los datos exactos y sin mezclar
           nombrePersona: u.nombre_persona,
           apellidoPersona: u.apellido_persona,
-          
           nombreCompleto: u.nombreCompleto || u.nombre_usuario, 
           dpi: u.dpi,
           usuario: u.usuario_sistema || u.usuario || u.nombre_usuario,
@@ -121,7 +123,7 @@ export class GestionUsuariosComponent implements OnInit, AfterViewInit, OnDestro
       error: () => {
         this.isLoading = false;
         this.cdr.markForCheck();
-        this.snackBar.open('Error al cargar usuarios.', 'OK', { duration: 5000 });
+        this.snackBar.open('Error al cargar la lista de usuarios.', 'OK', { duration: 5000 });
       }
     });
     this.subs.add(sub);
@@ -152,15 +154,15 @@ export class GestionUsuariosComponent implements OnInit, AfterViewInit, OnDestro
       width: '560px',
       maxWidth: '95vw',
       panelClass: 'dark-dialog',
-      data: usuario, // Pasamos la data para la edición        
+      data: usuario, // Inyección de datos para el modo edición        
       disableClose: true,        
     });
 
     dialogRef.afterClosed().subscribe(result => {
       if (result?.saved) {
         const msg = result.action === 'edit' 
-          ? '✅ Operador actualizado correctamente.' 
-          : '✅ Operador registrado correctamente.';
+          ? 'Operador actualizado correctamente en el sistema.' 
+          : 'Operador registrado correctamente en el sistema.';
         this.snackBar.open(msg, 'OK', { duration: 3500 });
         this.loadUsuarios();
       }
@@ -171,12 +173,13 @@ export class GestionUsuariosComponent implements OnInit, AfterViewInit, OnDestro
     this.openForm(usuario);
   }
 
+  // Lógica de cambio de estado (Soft Delete o Suspensión)
   toggleEstado(usuario: any): void {
     const accion = usuario.activo ? 'Desactivar' : 'Activar';
     const esBloqueo = usuario.activo; 
 
     const snackRef = this.snackBar.open(
-      `¿${accion} a ${usuario.nombreCompleto}?`,
+      `¿Desea ${accion.toLowerCase()} la cuenta de ${usuario.nombreCompleto}?`,
       'CONFIRMAR',
       {
         duration: 6000,
@@ -191,13 +194,13 @@ export class GestionUsuariosComponent implements OnInit, AfterViewInit, OnDestro
       this.usuariosService.cambiarEstado(usuario.id_usuario).subscribe({
         next: (res: any) => {
           this.togglingId = null;
-          this.snackBar.open(res.mensaje || `Usuario ${accion.toLowerCase()}do.`, 'OK', { duration: 3000 });
+          this.snackBar.open(res.mensaje || `Cuenta ${accion.toLowerCase()}da correctamente.`, 'OK', { duration: 3000 });
           this.loadUsuarios();
         },
         error: (err: any) => {
           this.togglingId = null;
           this.cdr.markForCheck();
-          this.snackBar.open('Error al cambiar el estado.', 'OK', { duration: 5000 });
+          this.snackBar.open('Error de comunicación al intentar cambiar el estado.', 'OK', { duration: 5000 });
         }
       });
     });

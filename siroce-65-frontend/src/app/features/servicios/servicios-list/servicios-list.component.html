@@ -20,6 +20,21 @@
           <mat-icon>close</mat-icon>
         </button>
       </mat-form-field>
+
+      <mat-form-field appearance="outline" class="date-range-field" subscriptSizing="dynamic">
+        <mat-label>Rango de fechas</mat-label>
+        <mat-date-range-input [formGroup]="rangoFechas" [rangePicker]="pickerServicios" [max]="maxDate" (click)="pickerServicios.open()">
+          <input matStartDate formControlName="inicio" placeholder="Inicio" readonly>
+          <input matEndDate formControlName="fin" placeholder="Fin" readonly>
+        </mat-date-range-input>
+        <button *ngIf="rangoFechas.value.inicio || rangoFechas.value.fin"
+                mat-icon-button matSuffix matTooltip="Limpiar fechas" (click)="clearRangoFechas()">
+          <mat-icon>close</mat-icon>
+        </button>
+        <mat-datepicker-toggle matIconSuffix [for]="pickerServicios"></mat-datepicker-toggle>
+        <mat-date-range-picker #pickerServicios></mat-date-range-picker>
+      </mat-form-field>
+
       <button mat-raised-button color="primary" class="btn-nueva" (click)="openForm()">
         <mat-icon>add_alert</mat-icon>
         <span class="btn-label">Nueva Emergencia</span>
@@ -54,6 +69,13 @@
       <div class="stat-data">
         <span class="stat-value">{{ stats.hoy }}</span>
         <span class="stat-label">Registradas hoy</span>
+      </div>
+    </div>
+    <div class="stat-chip stat-anonimas">
+      <div class="stat-icon-wrap"><mat-icon>person_off</mat-icon></div>
+      <div class="stat-data">
+        <span class="stat-value">{{ stats.anonimas }}</span>
+        <span class="stat-label">Llamadas Anónimas</span>
       </div>
     </div>
   </div>
@@ -154,7 +176,7 @@
           <td mat-cell *matCellDef="let s">
             <div class="direccion-cell">
               <mat-icon class="dir-icon">location_on</mat-icon>
-              <span [matTooltip]="s.direccionServicio" [matTooltipDisabled]="s.direccionServicio.length <= 40" matTooltipPosition="above">
+              <span [matTooltip]="s.direccionServicio || 'Sin dirección registrada'" matTooltipPosition="above">
                 {{ s.direccionServicio || '—' }}
               </span>
             </div>
@@ -166,10 +188,12 @@
           <td mat-cell *matCellDef="let s">
             <div class="solicitante-cell">
               <span class="solicitante-name">
-                <mat-icon class="sol-icon">person</mat-icon> {{ s.nombreSolicitante || 'Anónimo' }}
+                <mat-icon class="sol-icon">person</mat-icon>
+                <span class="solicitante-text">{{ s.nombreSolicitante || 'Anónimo' }}</span>
               </span>
               <span class="solicitante-tel" *ngIf="s.telefonoSolicitante">
-                <mat-icon class="sol-icon-small">phone</mat-icon> {{ s.telefonoSolicitante }}
+                <mat-icon class="sol-icon-small">phone</mat-icon>
+                <span class="solicitante-text">{{ s.telefonoSolicitante }}</span>
               </span>
             </div>
           </td>
@@ -253,14 +277,15 @@
               <mat-icon>verified</mat-icon>
             </button>
 
-            <button mat-icon-button *ngIf="s.estado === 'Finalizada'" 
+            <button mat-icon-button *ngIf="s.estado === 'Finalizada' || s.estado === 'Cancelada'"
                     matTooltip="Imprimir Informe Legal" matTooltipPosition="above" (click)="imprimirInforme(s)"
                     style="color: #ff5252; opacity: 1 !important;">
               <mat-icon>picture_as_pdf</mat-icon>
             </button>
 
-            <button mat-icon-button class="btn-eliminar" *ngIf="isAdmin" 
-                    matTooltip="Eliminar Registro" matTooltipPosition="above" (click)="onDelete(s)" [disabled]="deletingId === s.id">
+            <button mat-icon-button class="btn-eliminar" *ngIf="isAdmin && puedeEliminar(s)"
+                    matTooltip="Eliminar Registro" matTooltipPosition="above" (click)="onDelete(s)"
+                    [disabled]="deletingId === s.id">
               <mat-icon>{{ deletingId === s.id ? 'hourglass_empty' : 'delete_outline' }}</mat-icon>
             </button>
             

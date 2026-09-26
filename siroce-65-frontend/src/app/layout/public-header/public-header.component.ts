@@ -14,6 +14,8 @@ import { ThemeService } from '../../core/services/theme.service';
 })
 export class PublicHeaderComponent {
   @Input() showLoginButton = true;
+  // 🔥 NUEVO: Oculta Tema/Inicio/Redes cuando la pantalla debe quedar sin distracciones (ej. reset-password)
+  @Input() showActions = true;
 
   readonly facebookUrl =
     'https://www.facebook.com/people/Bomberos-Voluntarios-San-Rafael-PC/100064574956445/';

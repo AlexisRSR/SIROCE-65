@@ -142,6 +142,17 @@ export class VehiculosService {
     );
   }
 
+  /**
+   * Preview informativo del próximo NUMERO_UNIDAD que asignará el backend al
+   * crear una unidad (autogenerado, correlativo). El backend recalcula el
+   * valor real al guardar — esto es solo para mostrárselo al usuario antes.
+   */
+  getSiguienteNumero(): Observable<ApiResponse<{ numeroUnidad: string }>> {
+    return this.http.get<ApiResponse<{ numeroUnidad: string }>>(
+      `${this.API}/vehiculos/siguiente-numero`,
+    );
+  }
+
   // ── Catálogos (para los selects del formulario) ───────────
 
   /** Lista los tipos de unidad disponibles */

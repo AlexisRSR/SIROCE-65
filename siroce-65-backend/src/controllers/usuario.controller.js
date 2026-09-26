@@ -5,6 +5,29 @@ const bcrypt = require('bcryptjs');
 // Importamos los modelos y la conexión a la base de datos para la transacción
 const { Usuario, Persona, Rol } = require('../models');
 const { sequelize } = require('../config/database');
+const { registrarBitacora } = require('../helpers/bitacoraHelper');
+
+// ── Helpers de validación (evitan duplicar lógica y bajan la complejidad cognitiva) ────────
+// Traduce el campo que chocó en un SequelizeUniqueConstraintError a un mensaje legible
+const mensajeErrorCampoUnico = (campo) => {
+  if (campo === 'nombre_usuario') return 'El nombre de usuario ingresado ya existe en el sistema.';
+  if (campo === 'DPI') return 'El DPI ingresado ya existe en el sistema.';
+  return 'El dato ingresado ya existe en el sistema.';
+};
+
+// Valida que el rol venga informado y exista en catálogo; usado por crearUsuario y actualizarUsuario
+const resolverRolUsuario = async (rol, mensajeRolFaltante) => {
+  if (!rol) {
+    return { error: mensajeRolFaltante };
+  }
+
+  const rolDB = await Rol.findOne({ where: { nombre: rol } });
+  if (!rolDB) {
+    return { error: `No se encontró el rol: ${rol}` };
+  }
+
+  return { rolDB };
+};
 
 // ── Obtener todos los usuarios para llenar la tabla ─────────────────────────
 const obtenerUsuarios = async (req, res) => {
@@ -20,7 +43,7 @@ const obtenerUsuarios = async (req, res) => {
         {
           model: Persona,
           as: 'persona', // Asegúrate de que este alias coincida con tu models/index.js
-          attributes: ['NOMBRE', 'APELLIDO'],
+          attributes: ['NOMBRE', 'APELLIDO', 'DPI'], // 🔥 DPI ahora vive aquí, ya no en Usuario
           required: false // LEFT JOIN por si hay usuarios sin persona asociada
         }
       ],
@@ -32,12 +55,12 @@ const obtenerUsuarios = async (req, res) => {
       id_usuario: u.id_usuario,
       
       // Mandamos el nombre y apellido exactos por separado
-      nombre_persona: u.persona ? u.persona.NOMBRE : '',
-      apellido_persona: u.persona ? u.persona.APELLIDO : '',
-      
+      nombre_persona: u.persona?.NOMBRE ?? '',
+      apellido_persona: u.persona?.APELLIDO ?? '',
+
       nombreCompleto: u.persona ? `${u.persona.NOMBRE} ${u.persona.APELLIDO}` : u.nombre_usuario,
       usuario_sistema: u.nombre_usuario,
-      dpi: u.dpi,
+      dpi: u.persona?.DPI ?? null, // 🔥 3NF: el DPI ahora vive en tb_personas
       rol: u.rol,
       activo: u.activo
     }));
@@ -52,25 +75,18 @@ const obtenerUsuarios = async (req, res) => {
 // ── Registrar un nuevo usuario y su perfil de persona (Transacción) ────────
 const crearUsuario = async (req, res) => {
   // ESTO NOS DIRÁ EN LA TERMINAL EXACTAMENTE QUÉ DATOS LLEGAN
-  console.log('DATOS RECIBIDOS EN BACKEND:', req.body);
+  //console.log('DATOS RECIBIDOS EN BACKEND:', req.body);
   
   const t = await sequelize.transaction();
 
   try {
     const { nombre, apellido, dpi, rol, password, usuario } = req.body;
 
-    // VALIDACIÓN: Si el rol es undefined, no podemos continuar
-    if (!rol) {
+    // VALIDACIÓN: resuelve y valida el rol en un único punto (helper compartido)
+    const { rolDB, error: errorRol } = await resolverRolUsuario(rol, 'El campo rol no fue enviado correctamente');
+    if (errorRol) {
       await t.rollback();
-      return res.status(400).json({ error: 'El campo rol no fue enviado correctamente' });
-    }
-
-    // BUSCAR EL ROL
-    const rolDB = await Rol.findOne({ where: { nombre: rol } });
-    
-    if (!rolDB) {
-      await t.rollback();
-      return res.status(400).json({ error: `No se encontró el rol: ${rol}` });
+      return res.status(400).json({ error: errorRol });
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -79,7 +95,7 @@ const crearUsuario = async (req, res) => {
     const nuevoUsuario = await Usuario.create({
       nombre_usuario: usuario,
       password: passwordSegura,
-      dpi: dpi,
+      // 🔥 3NF: el DPI ya NO se inserta en `usuario` — solo vive en tb_personas (abajo)
       id_rol: rolDB.id_rol,
       activo: true,
       // 🔥 REQ-2.3: Toda contraseña insertada desde el panel de administración
@@ -95,16 +111,20 @@ const crearUsuario = async (req, res) => {
     }, { transaction: t });
 
     await t.commit();
+
+    // 📝 REGISTRO EN BITÁCORA
+    const idUsuarioToken = req.usuario?.id_usuario || req.user?.id_usuario || null;
+    await registrarBitacora(idUsuarioToken, `[USUARIOS] - Creó el usuario ${usuario}`);
+
     res.status(201).json({ mensaje: 'Operador registrado' });
 
   } catch (error) {
     await t.rollback(); // Siempre deshacemos la transacción primero
-    
-    // 🔥 SOLUCIÓN: Mensaje exacto para el DPI
+
+    // 🔥 3NF: el campo único que puede chocar ahora es nombre_usuario (Usuario) o DPI (Persona)
     if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ 
-        error: 'El DPI ingresado ya existe en el sistema.' 
-      });
+      const campo = error.errors?.[0]?.path;
+      return res.status(400).json({ error: mensajeErrorCampoUnico(campo) });
     }
 
     // Si es otro tipo de error, mantenemos el 500
@@ -130,6 +150,11 @@ const cambiarEstado = async (req, res) => {
     await usuario.save();
 
     const estadoTexto = usuario.activo ? 'activado' : 'desactivado';
+
+    // 📝 REGISTRO EN BITÁCORA
+    const idUsuarioToken = req.usuario?.id_usuario || req.user?.id_usuario || null;
+    await registrarBitacora(idUsuarioToken, `[USUARIOS] - ${usuario.activo ? 'Activó' : 'Desactivó'} el usuario ${usuario.nombre_usuario}`);
+
     res.json({ mensaje: `El usuario ha sido ${estadoTexto} exitosamente`, activo: usuario.activo });
 
   } catch (error) {
@@ -153,28 +178,24 @@ const actualizarUsuario = async (req, res) => {
       return res.status(404).json({ error: 'Operador no encontrado en el sistema' });
     }
 
-    // 2. Validar y buscar el Rol
-    if (!rol) {
+    // 2. Validar y buscar el Rol (helper compartido con crearUsuario)
+    const { rolDB, error: errorRol } = await resolverRolUsuario(rol, 'El campo rol es obligatorio');
+    if (errorRol) {
       await t.rollback();
-      return res.status(400).json({ error: 'El campo rol es obligatorio' });
-    }
-    
-    const rolDB = await Rol.findOne({ where: { nombre: rol } });
-    if (!rolDB) {
-      await t.rollback();
-      return res.status(400).json({ error: `No se encontró el rol: ${rol}` });
+      return res.status(400).json({ error: errorRol });
     }
 
     // 3. Preparar datos para actualizar la tabla Usuario
+    // 🔥 3NF: el DPI ya NO se actualiza en `usuario` — solo vive en tb_personas (abajo)
     const datosUsuario = {
       nombre_usuario: usuario,
-      dpi: dpi,
       id_rol: rolDB.id_rol
     };
 
-    // 4. Si el administrador escribió una contraseña nueva, la encriptamos
-    //    y forzamos el cambio obligatorio (REQ-2.3). Si la deja en blanco
-    //    (conserva la actual), requiere_cambio no se toca.
+    // 🛡️ SEGURIDAD: ACTUALIZACIÓN DE CONTRASEÑA
+    // 1. Si el administrador escribió una nueva contraseña, la encriptamos usando Bcrypt.
+    // 2. Activamos 'requiere_cambio = 1' para obligar al usuario a crear su propia clave al iniciar sesión.
+    // 3. Si el campo viene vacío, ignoramos este bloque para no borrar la contraseña que ya tenía.
     if (password && password.trim() !== '') {
       const salt = await bcrypt.genSalt(10);
       datosUsuario.password = await bcrypt.hash(password, salt);
@@ -203,16 +224,20 @@ const actualizarUsuario = async (req, res) => {
     }
 
     await t.commit();
+
+    // 📝 REGISTRO EN BITÁCORA
+    const idUsuarioToken = req.usuario?.id_usuario || req.user?.id_usuario || null;
+    await registrarBitacora(idUsuarioToken, `[USUARIOS] - Actualizó datos del usuario ${usuario}`);
+
     res.status(200).json({ mensaje: 'Operador actualizado correctamente' });
 
   } catch (error) {
     await t.rollback(); // Deshacer transacción
-    
-    // 🔥 SOLUCIÓN: Mensaje exacto para el DPI
+
+    // 🔥 3NF: el campo único que puede chocar ahora es nombre_usuario (Usuario) o DPI (Persona)
     if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ 
-        error: 'El DPI ingresado ya existe en el sistema.' 
-      });
+      const campo = error.errors?.[0]?.path;
+      return res.status(400).json({ error: mensajeErrorCampoUnico(campo) });
     }
 
     console.error('Error al actualizar usuario:', error);

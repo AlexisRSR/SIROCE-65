@@ -71,4 +71,22 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-module.exports = authMiddleware;
+/**
+ * Middleware RBAC: solo deja pasar si req.user.id_rol === 1 (ADMIN).
+ * Debe ir SIEMPRE después de authMiddleware en la cadena de la ruta,
+ * ya que depende de req.user (el payload decodificado del JWT).
+ *
+ * Uso: router.get('/ruta', authMiddleware, validarRolAdmin, controlador)
+ */
+const validarRolAdmin = (req, res, next) => {
+  if (req.user?.id_rol !== 1) {
+    return res.status(403).json({
+      ok     : false,
+      message: 'Acceso denegado. Esta acción requiere privilegios de Administrador.',
+    });
+  }
+
+  next();
+};
+
+module.exports = { authMiddleware, validarRolAdmin };

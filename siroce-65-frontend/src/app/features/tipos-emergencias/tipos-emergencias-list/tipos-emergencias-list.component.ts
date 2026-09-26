@@ -8,7 +8,6 @@ import { Subscription }       from 'rxjs';
 
 import { TiposEmergenciasService, Prioridad } from '../../../core/services/tipos-emergencias.service';
 import { TiposEmergenciasFormComponent } from '../tipos-emergencias-form/tipos-emergencias-form.component';
-import { VehiculosService, TipoVehiculo } from '../../../core/services/vehiculos.service'; 
 
 // 🔥 1. IMPORTAMOS EL SERVICIO DE SEGURIDAD
 import { AuthService } from '../../../core/services/auth.service';
@@ -26,34 +25,20 @@ export class TiposEmergenciasListComponent implements OnInit, AfterViewInit, OnD
   @ViewChild(MatSort)      sort!: MatSort;
 
   dataSource      = new MatTableDataSource<any>([]);
-  displayedColumns = ['num', 'nombre', 'categoria', 'descripcion', 'prioridad', 'vehiculo', 'acciones'];
+  displayedColumns = ['num', 'nombre', 'categoria', 'descripcion', 'prioridad', 'acciones'];
 
   isLoading  = false;
   deletingId : number | null = null;
   filterValue = '';
 
   stats = { total: 0, alta: 0, media: 0, baja: 0 };
-  tiposVehiculos: TipoVehiculo[] = []; 
-  
+
   userRole = ''; // 🔥 Variable para guardar el rol
 
-  private readonly TIPOS_VEHICULOS_DEFAULT = [
-    { ID_TIPO_V: 1, TIPO: 'Ambulancia' },
-    { ID_TIPO_V: 2, TIPO: 'Panel acondicionada' },
-    { ID_TIPO_V: 3, TIPO: 'Pickup' },
-    { ID_TIPO_V: 4, TIPO: 'Motobomba' },
-    { ID_TIPO_V: 5, TIPO: 'Cisterna' },
-    { ID_TIPO_V: 6, TIPO: 'Camioneta' },
-    { ID_TIPO_V: 7, TIPO: 'Sedán' },
-    { ID_TIPO_V: 8, TIPO: 'Hatchback' },
-    { ID_TIPO_V: 9, TIPO: 'Motocicleta' },
-  ];
-  
   private subs = new Subscription();
 
   constructor(
     private service     : TiposEmergenciasService,
-    private vehiculoSvc : VehiculosService, 
     private dialog      : MatDialog,
     private snackBar    : MatSnackBar,
     private cdr         : ChangeDetectorRef,
@@ -70,7 +55,7 @@ export class TiposEmergenciasListComponent implements OnInit, AfterViewInit, OnD
     }
 
     this.configurarDataSource();
-    this.cargarVehiculosYTareas(); 
+    this.cargarTipos();
   }
 
   ngAfterViewInit(): void {
@@ -80,20 +65,6 @@ export class TiposEmergenciasListComponent implements OnInit, AfterViewInit, OnD
 
   ngOnDestroy(): void {
     this.subs.unsubscribe();
-  }
-
-  private cargarVehiculosYTareas(): void {
-    this.isLoading = true;
-    this.vehiculoSvc.getTipos().subscribe({
-      next: (res) => {
-        this.tiposVehiculos = res.ok && res.data?.length ? res.data : this.TIPOS_VEHICULOS_DEFAULT;
-        this.cargarTipos(); 
-      },
-      error: () => {
-        this.tiposVehiculos = this.TIPOS_VEHICULOS_DEFAULT;
-        this.cargarTipos(); 
-      }
-    });
   }
 
   private configurarDataSource(): void {
@@ -128,7 +99,6 @@ export class TiposEmergenciasListComponent implements OnInit, AfterViewInit, OnD
           categoria: t.CATEGORIA || 'Emergencia',
           descripcion: t.DESCRIPCION || '—',
           prioridad: t.PRIORIDAD || 'Media',
-          id_tipo_v: t.ID_TIPO_V || null
         }));
 
         this.dataSource.data = listaNormalizada;
@@ -241,28 +211,5 @@ export class TiposEmergenciasListComponent implements OnInit, AfterViewInit, OnD
       'Alta' : 'priority_high', 'Media': 'remove', 'Baja' : 'keyboard_arrow_down',
     };
     return map[prioridad ?? ''] ?? 'help_outline';
-  }
-
-  getNombreVehiculo(idTipoV: number | null): string {
-    if (!idTipoV) return '—';
-    const vehiculo = this.tiposVehiculos.find(v => v.ID_TIPO_V === idTipoV);
-    return vehiculo ? vehiculo.TIPO : '—';
-  }
-
-  getIconoVehiculo(idTipoV: number | null): string {
-    if (!idTipoV) return 'local_shipping';
-    
-    const vehiculo = this.tiposVehiculos.find(v => v.ID_TIPO_V === idTipoV);
-    if (!vehiculo) return 'local_shipping';
-
-    const nombre = vehiculo.TIPO.toLowerCase();
-    
-    if (nombre.includes('moto') && !nombre.includes('motobomba')) return 'two_wheeler'; 
-    if (nombre.includes('ambulancia')) return 'airport_shuttle'; 
-    if (nombre.includes('motobomba')) return 'fire_truck';
-    if (nombre.includes('cisterna')) return 'water_drop'; 
-    if (nombre.includes('sedán') || nombre.includes('hatchback') || nombre.includes('camioneta')) return 'directions_car';
-    
-    return 'local_shipping'; 
   }
 }

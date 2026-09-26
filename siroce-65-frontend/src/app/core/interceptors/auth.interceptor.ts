@@ -2,7 +2,8 @@
 // ── Interceptor HTTP de Autenticación ────────────────────────
 // Añade automáticamente el header "Authorization: Bearer <token>"
 // a TODAS las peticiones HTTP salvo la de login.
-// Si la API responde 401 (token expirado/inválido), cierra la sesión.
+// Si la API responde 401 a una petición QUE SÍ llevaba token (sesión
+// expirada/inválida), avisa al operador y cierra la sesión.
 import { Injectable } from '@angular/core';
 import {
   HttpRequest,
@@ -11,13 +12,17 @@ import {
   HttpInterceptor,
   HttpErrorResponse,
 } from '@angular/common/http';
-import { Observable, throwError, catchError } from 'rxjs';
+import { EMPTY, Observable, throwError, catchError } from 'rxjs';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { AuthService } from '../services/auth.service';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
 
-  constructor(private auth: AuthService) {}
+  constructor(
+    private auth: AuthService,
+    private snackBar: MatSnackBar,
+  ) {}
 
   intercept(
     request: HttpRequest<unknown>,
@@ -35,9 +40,21 @@ export class AuthInterceptor implements HttpInterceptor {
 
     return next.handle(request).pipe(
       catchError((error: HttpErrorResponse) => {
-        // 401 → sesión expirada, redirigir a login
-        if (error.status === 401) {
-          this.auth.logout();
+        // 🔥 Solo se trata como "sesión expirada" si la petición llevaba un
+        // token adjunto y fue rechazada. Un 401 sin token (ej. credenciales
+        // inválidas en /login) es un fallo de login normal, no una sesión vencida.
+        if (error.status === 401 && token) {
+          this.snackBar.open(
+            '⚠️ Tu sesión ha expirado por razones de seguridad. Por favor, inicia sesión nuevamente.',
+            'Cerrar',
+            { duration: 6000 },
+          );
+          this.auth.logout(); // logout() ya limpia el storage y redirige a /login
+
+          // 🔥 Corta el flujo reactivo aquí: si propagáramos el error con
+          // throwError, el componente que originó la petición también lo
+          // atraparía y pisaría este mensaje con su propio snackbar genérico.
+          return EMPTY;
         }
         return throwError(() => error);
       })

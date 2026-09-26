@@ -182,10 +182,11 @@ export class VehiculosListComponent implements OnInit, AfterViewInit, OnDestroy 
           this.snackBar.open('Unidad eliminada.', 'OK', { duration: 3000 });
           this.loadVehiculos();
         },
-        error: () => {
+        error: (err) => {
           this.deletingId = null;
           this.cdr.markForCheck();
-          this.snackBar.open('Error al eliminar.', 'OK', { duration: 5000 });
+          const mensaje = err.error?.message || 'Error al eliminar.';
+          this.snackBar.open(mensaje, 'OK', { duration: 5000 });
         },
       });
     });

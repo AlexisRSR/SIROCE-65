@@ -30,6 +30,9 @@ export class ServiciosAsignacionComponent implements OnInit {
   assignedVehiculoIds: number[] = [];
   assignedBomberoIds: number[]  = [];
 
+  // 🔥 Bombero marcado como piloto de la unidad (debe estar entre los asignados)
+  selectedPilotoId: number | null = null;
+
   // 🔥 Arreglos para la lista negra de ocupados
   ocupadosVehiculoIds: number[] = [];
   ocupadosBomberoIds: number[]  = [];
@@ -60,7 +63,10 @@ export class ServiciosAsignacionComponent implements OnInit {
           const data = res.data || res;
           this.assignedVehiculoIds = (data.vehiculos || []).map((id: any) => Number(id));
           this.assignedBomberoIds  = (data.bomberos || []).map((id: any) => Number(id));
-          
+
+          // 🔥 Restauramos quién era el piloto en un despacho ya existente
+          this.selectedPilotoId = data.pilotoId != null ? Number(data.pilotoId) : null;
+
           // 🔥 Capturamos a los ocupados
           this.ocupadosVehiculoIds = (data.ocupados?.vehiculos || []).map((id: any) => Number(id));
           this.ocupadosBomberoIds  = (data.ocupados?.bomberos || []).map((id: any) => Number(id));
@@ -153,7 +159,8 @@ export class ServiciosAsignacionComponent implements OnInit {
     return 'Desconocido';
   }
 
-  getCargoBombero(b: any): string { return b?.CARGO || b?.cargo || b?.cargoFuncional || 'Bombero de Línea'; }
+  // 🔥 3NF: b.cargo ahora es un objeto { ID_CARGO, CARGO } (antes era texto plano)
+  getCargoBombero(b: any): string { return b?.cargo?.CARGO || b?.CARGO || b?.cargoFuncional || 'Bombero de Línea'; }
 
   loadVehiculos(): void {
     this.service.getVehiculosDisponibles().subscribe({
@@ -216,12 +223,68 @@ export class ServiciosAsignacionComponent implements OnInit {
   }
 
   onBomberoSelChange(): void {
-    if (this.bomberosList) {
-      this.assignedBomberoIds = this.bomberosList.selectedOptions.selected.map(o => Number(o.value));
-      this.selectedBomberoCount = this.assignedBomberoIds.length;
+    if (!this.bomberosList) return;
+
+    const idsAnteriores = this.assignedBomberoIds;
+    this.assignedBomberoIds = this.bomberosList.selectedOptions.selected.map(o => Number(o.value));
+    this.selectedBomberoCount = this.assignedBomberoIds.length;
+
+    // 🔥 IDs recién marcados en ESTE evento (altas), para no reasignar piloto
+    // cada vez que cambia cualquier otra casilla ya seleccionada previamente.
+    const idsRecienMarcados = this.assignedBomberoIds.filter(id => !idsAnteriores.includes(id));
+
+    if (this.selectedPilotoId === null) {
+      // 1) Auto-asigna como piloto al primer recién marcado con especialidad Piloto/Conductor,
+      //    solo si el select todavía está vacío (no pisa una elección manual previa).
+      const nuevoPiloto = idsRecienMarcados.find(id => this.esPilotoOConductor(id));
+      if (nuevoPiloto !== undefined) this.selectedPilotoId = nuevoPiloto;
+    } else if (!this.assignedBomberoIds.includes(this.selectedPilotoId)) {
+      // 3) Si se desmarcó al piloto vigente, cae automáticamente al siguiente candidato
+      //    disponible entre los ya seleccionados; si no queda ninguno, se limpia el select.
+      this.selectedPilotoId = this.bomberosAsignadosParaPiloto[0]?.ID_BOMBERO ?? null;
     }
+    // 2) Si ya hay piloto asignado y se marca a otro también apto, se mantiene el actual
+    //    (no entra a ninguna de las dos ramas anteriores) — el usuario lo cambia manualmente
+    //    desde el <mat-select>, que ya lista a todos los candidatos asignados.
+
     this.errorMsg = '';
     this.cdr.markForCheck();
+  }
+
+  // 🔥 Especialidad del bombero por ID, usada para la auto-asignación de piloto
+  private esPilotoOConductor(idBombero: number): boolean {
+    const bombero = this.bomberos.find(b => b.ID_BOMBERO === idBombero);
+    if (!bombero) return false;
+    const cargo = this.getCargoBombero(bombero).toLowerCase();
+    return cargo.includes('piloto') || cargo.includes('conductor');
+  }
+
+  // 🔥 Regla de negocio: solo puede figurar como candidato a Piloto quien (a) ya
+  // esté marcado en la lista superior de personal destacado Y (b) tenga la
+  // especialidad de Piloto/Conductor. Un Paramédico o Bombero de Línea, aunque
+  // esté asignado al servicio, NUNCA aparece aquí — no está capacitado para conducir.
+  get bomberosAsignadosParaPiloto(): BomberoDisponible[] {
+    return this.bomberos.filter(b => {
+      if (!this.assignedBomberoIds.includes(b.ID_BOMBERO)) return false;
+      const cargo = this.getCargoBombero(b).toLowerCase();
+      return cargo.includes('piloto') || cargo.includes('conductor');
+    });
+  }
+
+  // 🔥 Del personal ya destacado, ¿hay al menos uno con la especialidad correcta?
+  get hayCandidatoAPiloto(): boolean {
+    return this.bomberosAsignadosParaPiloto.length > 0;
+  }
+
+  // 🔥 Se dispara desde el <mat-select> "Seleccione al Piloto", fuera del
+  // mat-list-option — evita por completo el conflicto de clics con Angular Material.
+  onPilotoSelectChange(idBombero: number | null): void {
+    this.selectedPilotoId = idBombero;
+    this.cdr.markForCheck();
+  }
+
+  isPiloto(idBombero: number): boolean {
+    return this.selectedPilotoId === idBombero;
   }
 
   get totalSeleccionados(): number { return this.selectedVehiculoCount + this.selectedBomberoCount; }
@@ -236,37 +299,28 @@ export class ServiciosAsignacionComponent implements OnInit {
       return;
     }
 
+    // 🔥 Regla de negocio: no se puede despachar una unidad sin conductor
+    if (!this.selectedPilotoId) {
+      this.errorMsg = '⚠️ Debes seleccionar al Piloto de la unidad antes de despachar.';
+      this.cdr.markForCheck();
+      return;
+    }
+
     this.isDespachanando = true;
     this.errorMsg        = '';
     this.cdr.markForCheck();
 
-    const payload: AsignacionPayload = { vehiculos: idVehiculos, bomberos : idBomberos };
-    let autoUpdatePayload: any = null;
-    
-    if (idVehiculos.length > 0) {
-        const nombresUnidades = idVehiculos.map(id => {
-            const v = this.vehiculos.find(veh => veh.ID_VEHICULO === id);
-            return v ? `${v.PLACA} - ${v.MARCA}` : '';
-        }).filter(n => n !== '').join(', ');
-
-        const s: any = this.servicio;
-        autoUpdatePayload = { 
-            UNIDAD_DESTACADA: nombresUnidades,
-            ESTADO: s.estado || s.ESTADO || 'Pendiente'
-        };
-    }
+    // 🔥 3NF: la unidad y el personal destacado ya no se guardan como texto en
+    // TB_SERVICIOS — se derivan del JOIN con detalle_vehiculo/detalle_bombero,
+    // que es justamente lo que inserta este endpoint. `es_piloto` marca al
+    // bombero que conduce la unidad.
+    const bomberosPayload = idBomberos.map(id => ({ id_bombero: id, es_piloto: id === this.selectedPilotoId }));
+    const payload: AsignacionPayload = { vehiculos: idVehiculos, bomberos: bomberosPayload };
 
     this.service.asignarRecursos(this.servicio.id, payload).subscribe({
       next: () => {
-        if (autoUpdatePayload) {
-             this.service.update(this.servicio.id, autoUpdatePayload).subscribe({
-                 next: () => { this.isDespachanando = false; this.dialogRef.close({ dispatched: true, payload }); },
-                 error: () => { this.isDespachanando = false; this.dialogRef.close({ dispatched: true, payload }); }
-             });
-        } else {
-            this.isDespachanando = false;
-            this.dialogRef.close({ dispatched: true, payload });
-        }
+        this.isDespachanando = false;
+        this.dialogRef.close({ dispatched: true, payload });
       },
       error: (err) => {
         this.isDespachanando = false;

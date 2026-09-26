@@ -56,12 +56,9 @@ const Usuario = sequelize.define(
       defaultValue: null,
     },
 
-    // dpi VARCHAR(13) NOT NULL UNIQUE  ← DPI guatemalteco, 13 dígitos
-    dpi: {
-      type     : DataTypes.STRING(13),
-      allowNull: false,
-      unique   : true,
-    },
+    // 🔥 3NF: el DPI ya NO vive en `usuario` — se movió a `tb_personas.DPI`
+    // (ver modelo Persona). No declarar el atributo aquí evita que Sequelize
+    // intente leer/escribir una columna que ya no existe en esta tabla.
 
     // id_rol INT NOT NULL  ← FK hacia Rol
     id_rol: {

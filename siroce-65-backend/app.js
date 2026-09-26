@@ -18,12 +18,16 @@ const authRoutes         = require('./src/routes/authRoutes');      // Fase 1 �
 const bomberoRoutes      = require('./src/routes/bomberoRoutes');   // Fase 2 — Protegida
 const vehiculoRoutes     = require('./src/routes/vehiculoRoutes');  // Fase 2 — Protegida
 const servicioRoutes     = require('./src/routes/servicioRoutes');  // Fase 2 — Protegida
+const tipoServicioRoutes = require('./src/routes/tipoServicioRoutes'); // Catálogo Tipos de Emergencia (SRP)
 const insumoRoutes       = require('./src/routes/insumoRoutes');    // Fase 8 — Protegida
 const estadisticasRoutes = require('./src/routes/estadisticasRoutes'); // Módulo Estadísticas
 const mailerRoutes       = require('./src/routes/mailerRoutes');    // Módulo Mailer
 
 // 🔥 NUEVO: IMPORTAR RUTAS DE USUARIOS (Gestión de Accesos)
 const usuarioRoutes      = require('./src/routes/usuario.routes');
+
+// 🔥 NUEVO: IMPORTAR RUTAS DE BITÁCORA (Auditoría — solo ADMIN)
+const bitacoraRoutes     = require('./src/routes/bitacora.routes');
 
 // 🔥 NUEVO: IMPORTAR EL SERVICIO DE TAREAS PROGRAMADAS
 const { iniciarCronJobs } = require('./src/utils/cronService');
@@ -56,6 +60,7 @@ app.use('/api', authRoutes);      // POST  /api/login
 app.use('/api', bomberoRoutes);
 app.use('/api', vehiculoRoutes);
 app.use('/api', servicioRoutes);
+app.use('/api', tipoServicioRoutes);
 app.use('/api', insumoRoutes);
 
 // ── [PROTEGIDAS] Módulo de Gestión de Usuarios ────────────────
@@ -64,7 +69,11 @@ app.use('/api/usuarios', usuarioRoutes);
 
 // ── [PROTEGIDAS] Módulo Estadísticas ──────────────────────────
 //   GET  /api/estadisticas/dashboard
-app.use('/api/estadisticas', estadisticasRoutes); 
+app.use('/api/estadisticas', estadisticasRoutes);
+
+// ── [PROTEGIDA · SOLO ADMIN] Módulo de Bitácora (Auditoría) ──
+//   GET  /api/bitacora
+app.use('/api', bitacoraRoutes);
 
 // ── [PROTEGIDAS] Módulo Mailer ────────────────────────────────
 //   GET  /api/mailer/test
@@ -125,6 +134,7 @@ const startServer = async () => {
     console.log(`🚒  [AUTH]    CRUD   /api/insumos`); 
     console.log(`🚒  [AUTH]    CRUD   /api/usuarios`); // 🔥 NUEVA RUTA EN CONSOLA
     console.log(`🚒  [AUTH]    GET    /api/estadisticas/dashboard`);
+    console.log(`🚒  [ADMIN]   GET    /api/bitacora`);
     console.log(`🚒  [AUTH]    GET    /api/mailer/test`);
     console.log(`🚒  [AUTH]    GET    /api/grados`);
     console.log(`🚒  [AUTH]    GET    /api/estados-bombero`);

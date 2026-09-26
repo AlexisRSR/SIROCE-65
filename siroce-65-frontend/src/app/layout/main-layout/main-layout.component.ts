@@ -50,6 +50,7 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   @ViewChild('changePasswordDialog') changePasswordDialog!: TemplateRef<any>;
 
   isMobile = false;
+  isCollapsed = false;
   username = '';
   userRole = '';
 
@@ -101,9 +102,10 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
       label   : 'ADMINISTRACIÓN',
       icon    : 'admin_panel_settings',
       expanded: false,
-      roles   : ['ADMIN'],
+      roles   : ['ADMIN'], // 🔥 Todo el grupo (y por tanto "Bitácora") solo es visible para ADMIN
       children: [
-        { label: 'Usuarios', icon: 'manage_accounts', route: '/gestion-usuarios' },
+        { label: 'Usuarios',  icon: 'manage_accounts', route: '/gestion-usuarios' },
+        { label: 'Bitácora',  icon: 'fact_check',       route: '/bitacora'        },
       ],
     }
   ];
@@ -168,6 +170,16 @@ export class MainLayoutComponent implements OnInit, OnDestroy {
   toggleTheme(): void {
     this.theme.toggle();
     this.cdr.markForCheck();
+  }
+
+  // 🔥 Mini-variant: en desktop solo colapsa el ancho (el sidenav se queda "side"
+  // y abierto); en mobile conserva el comportamiento de cajón superpuesto de siempre.
+  toggleSidenav(): void {
+    if (this.isMobile) {
+      this.sidenav.toggle();
+    } else {
+      this.isCollapsed = !this.isCollapsed;
+    }
   }
 
   toggleGroup(group: NavGroup): void {

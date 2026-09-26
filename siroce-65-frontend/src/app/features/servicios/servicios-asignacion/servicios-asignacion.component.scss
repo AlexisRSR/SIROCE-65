@@ -262,7 +262,19 @@ $text-faint    : var(--text-faint);
     .mdc-checkbox__background {
       background-color: transparent !important;
       border-color: var(--border-input) !important;
+      border-width: 2px !important;
     }
+
+    // 🔥 A11y: refuerzo de contraste — [aria-selected="true"] cubre el estado
+    // seleccionado sin depender solo de la clase interna --selected de MDC.
+    .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background,
+    .mdc-checkbox--selected .mdc-checkbox__background,
+    [aria-selected="true"] .mdc-checkbox__background {
+      background-color: $red-mid !important;
+      border-color     : $red-mid !important;
+      border-width     : 2px !important;
+    }
+    .mdc-checkbox__checkmark-path { stroke: #fff !important; }
 
     // Texto principal del option (ocultamos el default para usar nuestro template)
     .mdc-list-item__primary-text {
@@ -270,6 +282,15 @@ $text-faint    : var(--text-faint);
       font-size: 14px;
       width: 100%;
     }
+  }
+}
+
+// 🔥 A11y (tema claro): var(--border-input) en claro es rgba(0,0,0,0.38),
+// insuficiente contra fondos claros. Se refuerza SOLO en tema claro para no
+// oscurecer de más el checkbox en tema oscuro (donde ya se ve bien).
+:host-context([data-theme='light']) {
+  .sa-selection-list ::ng-deep .mdc-checkbox__background {
+    border-color: rgba(0, 0, 0, 0.6) !important;
   }
 }
 
@@ -372,6 +393,20 @@ $text-faint    : var(--text-faint);
 .estado-taller  { background: rgba(255,167, 38,0.15); color: var(--accent-warn-soft); border: 1px solid rgba(255,167, 38,0.35); }
 .estado-fuera   { background: rgba(239, 83, 80,0.15); color: var(--accent-danger-soft); border: 1px solid rgba(239, 83, 80,0.35); }
 .estado-default { background: var(--bg-badge-neutral); color: $text-dim; border: 1px solid $border; }
+
+// ════════════════════════════════════════════════════════════
+//  Selector de Piloto (mat-select fuera del mat-list-option)
+// ════════════════════════════════════════════════════════════
+.sa-piloto-field {
+  width: 100%;
+  margin-top: 14px;
+  margin-bottom: 24px; // 🔥 Respiro antes de los botones Cancelar / Despachar
+
+  .sa-piloto-hint-required {
+    color: var(--accent-danger-soft);
+    font-weight: 500;
+  }
+}
 
 // ════════════════════════════════════════════════════════════
 //  ⑤ ACCIONES

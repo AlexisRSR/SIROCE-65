@@ -3,12 +3,19 @@
 @use "sass:color";
 
 // Rojo literal (para color.adjust); el resto sigue al tema activo
-$red-dark   : #b71c1c;
-$dialog-bg  : var(--bg-dialog);
-$input-bg   : var(--bg-input);
-$border     : var(--border-color);
-$text-on    : var(--text-primary);
-$text-dim   : var(--text-dim);
+$red-dark    : #b71c1c;
+$dialog-bg   : var(--bg-dialog);
+$input-bg    : var(--bg-input);
+$border      : var(--border-color);
+$text-on     : var(--text-primary);
+$text-dim    : var(--text-dim);
+// 🔥 Contraste de inputs: en modo oscuro el fondo del modal (--bg-dialog) y
+// el de los campos (--bg-input) quedan casi iguales — el borde tenue
+// (--border-color) no alcanza para separarlos visualmente. --border-input
+// es más fuerte y está pensado justo para esto; --text-bright es el blanco
+// puro (vs. --text-primary, gris claro) para que lo tecleado destaque.
+$input-border: var(--border-input);
+$text-bright : var(--text-bright);
 
 .sf-wrapper {
   background-color: $dialog-bg; display: flex;
@@ -72,32 +79,61 @@ $text-dim   : var(--text-dim);
   &.full-width { grid-column: 1 / -1; }
   ::ng-deep {
     .mat-mdc-text-field-wrapper { background-color: $input-bg !important; }
+    // 🔥 Contraste: borde visible SIEMPRE (no solo al enfocar), con
+    // --border-input en vez de --border-color, para que el campo se
+    // distinga del fondo del modal en modo oscuro.
     .mdc-notched-outline__leading, .mdc-notched-outline__notch,
-    .mdc-notched-outline__trailing { border-color: $border !important; }
+    .mdc-notched-outline__trailing { border-color: $input-border !important; }
     .mdc-text-field--focused {
       .mdc-notched-outline__leading, .mdc-notched-outline__notch,
       .mdc-notched-outline__trailing { border-color: $red-dark !important; border-width: 2px !important; }
     }
     .mat-mdc-floating-label.mdc-floating-label--float-above { color: $red-dark !important; }
-    .mat-mdc-input-element, .mat-mdc-select-value-text { color: $text-on; }
+    .mat-mdc-input-element, .mat-mdc-select-value-text { color: $text-bright !important; }
     .mat-mdc-select-arrow { color: $text-dim; }
-    textarea { color: $text-on; resize: vertical; }
+    textarea { color: $text-bright !important; resize: vertical; }
     input[type="date"]::-webkit-calendar-picker-indicator { filter: var(--calendar-icon-filter); cursor: pointer; }
   }
 }
 .field-icon { color: $text-dim; font-size: 18px; width: 18px; height: 18px; }
 
+// 🔥 Angular Material atenúa la opacidad del mat-hint dentro de un
+// mat-form-field deshabilitado (estadoBloqueado) — en modo oscuro queda casi
+// ilegible. Se fuerza a texto e opacidad plenos.
+.hint-destacado {
+  color: var(--text-medium) !important;
+  opacity: 1 !important;
+}
+
 // ── mat-select-trigger ────────────────────────────────────────
+// 🔥 Bug conocido de Material: el wrapper interno de mat-select/mat-option
+// (.mat-mdc-select-value-text / .mdc-list-item__primary-text) es inline con
+// overflow:hidden, así que si el <mat-icon> no centra su propia línea, el
+// glyph queda recortado arriba/abajo. flex-shrink:0 + line-height:1 en el
+// ícono, y display:flex en esos wrappers (abajo), lo resuelven en ambos casos.
 .select-trigger-wrap {
   display: flex; align-items: center; gap: 6px; font-size: 14px; color: $text-on;
-  .trigger-icon { font-size: 18px; width: 18px; height: 18px; color: $red-dark; }
+  .trigger-icon { font-size: 18px; width: 18px; height: 18px; line-height: 1; flex-shrink: 0; color: $red-dark; }
 }
 .trigger-placeholder { color: $text-dim; font-size: 14px; }
 
+// :host ::ng-deep (no un ::ng-deep "suelto") para que solo afecte al trigger
+// de ESTE formulario — el valor cerrado del select sí vive dentro del propio
+// árbol del componente, así que :host lo mantiene acotado aquí.
+:host ::ng-deep .mat-mdc-select-value-text { display: flex; align-items: center; }
+
 // ── Opciones del dropdown ─────────────────────────────────────
 .option-row { display: flex; align-items: center; gap: 8px; font-size: 14px; }
-.opt-icon   { font-size: 18px; width: 18px; height: 18px; color: $text-dim; }
+.opt-icon   { font-size: 18px; width: 18px; height: 18px; line-height: 1; flex-shrink: 0; color: $text-dim; }
 .option-empty { color: $text-dim; font-style: italic; font-size: 13px; }
+
+// El panel de opciones SÍ se renderiza fuera del árbol del componente (en el
+// overlay de CDK), así que :host no lo alcanza. Por eso el <mat-select> de
+// "Tipo de evento" recibe panelClass="tipo-evento-panel" en el HTML — este
+// selector queda acotado a ESE panel puntual, sin filtrarse a otros selects.
+::ng-deep .tipo-evento-panel .mdc-list-item__primary-text {
+  display: flex; align-items: center; width: 100%;
+}
 
 // ── Acciones ──────────────────────────────────────────────────
 .sf-actions {

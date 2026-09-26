@@ -44,6 +44,53 @@ $content-bg     : var(--bg-content);
   overflow: hidden;
 }
 
+/* Transiciones sincronizadas base: ancho del sidenav y margen del contenido
+   animan con la MISMA duración/easing, sin que JS mida nada — puro CSS. */
+::ng-deep mat-sidenav {
+  transition: width 0.3s ease !important;
+  overflow-x: hidden;
+}
+::ng-deep .mat-sidenav-content,
+::ng-deep .mat-drawer-content {
+  transition: margin-left 0.3s ease !important;
+}
+
+/* Estado colapsado: la clase vive en mat-sidenav-container, así que el ancho
+   del sidenav y el margen del contenido cambian en el mismo tick de render. */
+::ng-deep mat-sidenav-container.collapsed {
+  mat-sidenav {
+    width: 70px !important;
+  }
+  .mat-sidenav-content, .mat-drawer-content {
+    margin-left: 70px !important;
+  }
+
+  /* Ocultar textos y centrar íconos cuando está colapsado */
+  .menu-text, .nav-chevron {
+    display: none !important;
+  }
+
+  .sidenav-header {
+    justify-content: center;
+    padding: 0;
+    gap: 0;
+  }
+
+  .nav-group-header,
+  .nav-child-item,
+  .nav-logout-btn {
+    justify-content: center;
+    padding: 0;
+    gap: 0;
+
+    .nav-group-icon,
+    .nav-child-icon,
+    mat-icon {
+      margin: 0 auto;
+    }
+  }
+}
+
 // ── Cabecera del sidenav ──────────────────────────────────────
 .sidenav-header {
   display: flex;

@@ -10,7 +10,7 @@
            <footer>          ← Pie de página
      ═══════════════════════════════════════════════════════════ -->
 
-  <mat-sidenav-container class="shell-container" fullscreen>
+  <mat-sidenav-container class="shell-container" [class.collapsed]="isCollapsed" fullscreen>
   <!-- ════════════════════════════════════════════════════════
        SIDENAV — Menú lateral izquierdo
        Modo: "side" en desktop (visible fijo),
@@ -27,7 +27,7 @@
 
     <div class="sidenav-header">
       <img src="escudo.png" alt="Escudo 65 Cía" class="sidenav-brand-icon">
-      <span class="sidenav-brand-text">MENU</span>
+      <span class="sidenav-brand-text menu-text">MENU</span>
     </div>
 
     <mat-divider class="sidenav-divider"></mat-divider>
@@ -46,7 +46,7 @@
             [matRippleColor]="'rgba(198,40,40,0.12)'">
 
             <mat-icon class="nav-group-icon">{{ group.icon }}</mat-icon>
-            <span class="nav-group-label">{{ group.label }}</span>
+            <span class="nav-group-label menu-text">{{ group.label }}</span>
             <mat-icon class="nav-chevron" *ngIf="group.children">
               {{ group.expanded ? 'expand_less' : 'expand_more' }}
             </mat-icon>
@@ -68,7 +68,7 @@
               [attr.aria-label]="child.label">
 
               <mat-icon class="nav-child-icon">{{ child.icon }}</mat-icon>
-              <span class="nav-child-label">{{ child.label }}</span>
+              <span class="nav-child-label menu-text">{{ child.label }}</span>
             </a>
           </div>
 
@@ -88,7 +88,7 @@
       [matRippleColor]="'rgba(198,40,40,0.18)'"
       aria-label="Cerrar sesión">
       <mat-icon>exit_to_app</mat-icon>
-      <span>Salir</span>
+      <span class="menu-text">Salir</span>
     </button>
 
   </mat-sidenav>
@@ -99,7 +99,7 @@
       <button
         mat-icon-button
         class="toolbar-menu-btn"
-        (click)="sidenav.toggle()"
+        (click)="toggleSidenav()"
         aria-label="Abrir o cerrar menú lateral">
         <mat-icon>menu</mat-icon>
       </button>
