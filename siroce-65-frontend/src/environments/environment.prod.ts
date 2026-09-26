@@ -3,5 +3,6 @@
 // Actualizar apiUrl con la URL real del servidor antes de desplegar
 export const environment = {
   production: true,
-  apiUrl: 'https://tu-servidor.com/api', // ← Cambiar en producción
+apiUrl: 'https://intelligent-inspiration-production-f323.up.railway.app/api' //'https://tu-servidor.com/api', // ← Cambiar en producción
 };
+

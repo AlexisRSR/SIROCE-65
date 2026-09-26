@@ -3,5 +3,5 @@
 // Apunta al backend Node.js/Express corriendo en localhost:3000
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000/api',
+  apiUrl: 'https://intelligent-inspiration-production-f323.up.railway.app/api' //'http://localhost:3000/api',
 };
