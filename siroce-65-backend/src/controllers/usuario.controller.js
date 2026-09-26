@@ -4,7 +4,7 @@
 const bcrypt = require('bcryptjs');
 // Importamos los modelos y la conexión a la base de datos para la transacción
 const { Usuario, Persona, Rol } = require('../models');
-const { sequelize } = require('../config/database');
+const { sequelize } = require('../config/database.js');
 const { registrarBitacora } = require('../helpers/bitacoraHelper');
 
 // ── Helpers de validación (evitan duplicar lógica y bajan la complejidad cognitiva) ────────
