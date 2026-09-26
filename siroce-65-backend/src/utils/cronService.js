@@ -8,7 +8,7 @@
 const cron = require('node-cron');
 const { Op } = require('sequelize');
 const { Servicio, TipoServicio, Paciente } = require('../models');
-const { enviarCorreo } = require('../Config/mailer');
+const { enviarCorreo } = require('../config/mailer');
 
 const correoOficial = process.env.CORREO_ADMINISTRADOR;
 
