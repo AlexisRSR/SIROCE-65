@@ -1,5 +1,5 @@
 // controllers/mailerController.js
-const { enviarCorreo } = require('../Config/mailer');
+const { enviarCorreo } = require('../config/mailer');
 
 const enviarCorreoPrueba = async (req, res) => {
   try {
