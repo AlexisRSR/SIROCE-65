@@ -2,7 +2,7 @@
 'use strict';
 
 // ── IMPORTANTE: Importar la conexión a la BD (Fase 1) ─────────
-const { sequelize } = require('../config/database');
+const { sequelize } = require('../config/database.js');
 
 // ── FASE 1: Módulo de Seguridad ───────────────────────────────
 const Rol     = require('./Rol');
