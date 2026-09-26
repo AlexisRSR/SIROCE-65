@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════════════════════
 'use strict';
 
-const { enviarCorreo } = require('../Config/mailer');
+const { enviarCorreo } = require('../config/mailer');
 
 const correoOficial = process.env.CORREO_ADMINISTRADOR;
 
