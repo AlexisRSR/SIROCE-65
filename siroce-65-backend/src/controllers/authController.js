@@ -3,7 +3,7 @@
 
 const bcrypt = require('bcryptjs');
 const jwt    = require('jsonwebtoken');
-const { enviarCorreo } = require('../Config/mailer');
+const { enviarCorreo } = require('../config/mailer');
 
 const { Usuario, Rol, Persona } = require('../models');
 
