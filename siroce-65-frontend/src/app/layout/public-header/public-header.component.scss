@@ -63,6 +63,30 @@ $red-primary: #c62828;
   }
 }
 
+// Botón de acceso — con texto, alineado a la derecha junto a
+// los íconos, con el mismo lenguaje visual (borde claro sutil,
+// texto blanco, hover en rojo corporativo).
+.header-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+  mat-icon { width: 18px; height: 18px; font-size: 18px; }
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.10);
+    color: $red-primary;
+    border-color: $red-primary;
+  }
+}
+
 @media (max-width: 480px) {
   .public-header { padding: 12px 16px; }
   .brand .brand-text { font-size: 13px; letter-spacing: 2px; }
