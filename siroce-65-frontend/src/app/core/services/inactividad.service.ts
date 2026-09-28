@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from './auth.service';
 
-const TIEMPO_INACTIVIDAD_MS = 10 * 1000; // 30 minutos
+const TIEMPO_INACTIVIDAD_MS = 20 * 60 * 1000; // 20 minutos
 const EVENTOS = ['mousemove', 'keydown', 'click', 'scroll'] as const;
 
 @Component({
