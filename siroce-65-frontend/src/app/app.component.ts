@@ -1,5 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { AuthService } from './core/services/auth.service';
+import { InactividadService } from './core/services/inactividad.service';
 
 @Component({
   selector: 'app-root',
@@ -39,8 +43,33 @@ import { AuthService } from './core/services/auth.service';
     }
   `]
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
   title = 'siroce-65-frontend';
 
-  constructor(public auth: AuthService) {}
+  private routerSub?: Subscription;
+
+  constructor(
+    public auth: AuthService,
+    private router: Router,
+    private inactividad: InactividadService,
+  ) {}
+
+  ngOnInit(): void {
+    // Inicia/detiene la vigilancia de inactividad según el estado real de
+    // autenticación en cada navegación (cubre login, logout y recarga de página).
+    this.routerSub = this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe(() => {
+        if (this.auth.isLoggedIn()) {
+          this.inactividad.iniciar();
+        } else {
+          this.inactividad.detener();
+        }
+      });
+  }
+
+  ngOnDestroy(): void {
+    this.routerSub?.unsubscribe();
+    this.inactividad.detener();
+  }
 }
