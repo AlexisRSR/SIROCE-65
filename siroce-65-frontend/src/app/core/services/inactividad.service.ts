@@ -1,8 +1,27 @@
-import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import { Component, Injectable, NgZone, OnDestroy } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { AuthService } from './auth.service';
 
 const TIEMPO_INACTIVIDAD_MS = 10 * 1000; // 30 minutos
 const EVENTOS = ['mousemove', 'keydown', 'click', 'scroll'] as const;
+
+@Component({
+  selector: 'app-inactividad-dialog',
+  standalone: true,
+  imports: [CommonModule, MatDialogModule, MatButtonModule],
+  template: `
+    <h2 mat-dialog-title>Sesión expirada</h2>
+    <mat-dialog-content>
+      Su sesión ha expirado por inactividad. Por favor, inicie sesión nuevamente.
+    </mat-dialog-content>
+    <mat-dialog-actions align="end">
+      <button mat-raised-button color="warn" [mat-dialog-close]="true">Aceptar</button>
+    </mat-dialog-actions>
+  `,
+})
+export class InactividadDialogComponent {}
 
 @Injectable({ providedIn: 'root' })
 export class InactividadService implements OnDestroy {
@@ -14,6 +33,7 @@ export class InactividadService implements OnDestroy {
   constructor(
     private ngZone: NgZone,
     private auth  : AuthService,
+    private dialog: MatDialog,
   ) {}
 
   iniciar(): void {
@@ -52,8 +72,13 @@ export class InactividadService implements OnDestroy {
     this.detener();
 
     this.ngZone.run(() => {
-      alert('Su sesión ha expirado por inactividad.');
-      this.auth.logout();
+      const dialogRef = this.dialog.open(InactividadDialogComponent, {
+        disableClose: true,
+      });
+
+      dialogRef.afterClosed().subscribe(() => {
+        this.auth.logout();
+      });
     });
   }
 
