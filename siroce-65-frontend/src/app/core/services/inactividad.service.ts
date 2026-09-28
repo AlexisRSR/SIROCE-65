@@ -17,7 +17,7 @@ const EVENTOS = ['mousemove', 'keydown', 'click', 'scroll'] as const;
       Su sesión ha expirado por inactividad. Por favor, inicie sesión nuevamente.
     </mat-dialog-content>
     <mat-dialog-actions align="end">
-      <button mat-raised-button color="warn" [mat-dialog-close]="true">Aceptar</button>
+      <button mat-raised-button class="inactividad-accept-btn" [mat-dialog-close]="true">Aceptar</button>
     </mat-dialog-actions>
   `,
 })
@@ -74,6 +74,7 @@ export class InactividadService implements OnDestroy {
     this.ngZone.run(() => {
       const dialogRef = this.dialog.open(InactividadDialogComponent, {
         disableClose: true,
+        panelClass: 'inactividad-dialog-panel',
       });
 
       dialogRef.afterClosed().subscribe(() => {

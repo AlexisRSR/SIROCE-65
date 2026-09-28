@@ -283,6 +283,35 @@ input:-webkit-autofill:active {
   background-color: var(--bg-dialog) !important;
 }
 
+/* Texto por defecto de cualquier diálogo — el tema prebuilt de
+   Material (rose-red.css) asume fondo claro y pinta el texto en
+   negro; se sigue el tema activo igual que el resto del sistema. */
+.mat-mdc-dialog-container {
+  .mat-mdc-dialog-title, .mdc-dialog__title {
+    color: var(--text-bright) !important;
+  }
+  .mat-mdc-dialog-content, .mdc-dialog__content {
+    color: var(--text-primary) !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   DIÁLOGO DE INACTIVIDAD (InactividadDialogComponent)
+   Botón rojo corporativo — la paleta "warn" del tema prebuilt
+   no está personalizada para SIROCE-65, así que se pinta con
+   las mismas variables que el resto de superficies rojas
+   (toolbar-logout-btn, mat-calendar-body-selected, etc.).
+   ══════════════════════════════════════════════════════════ */
+::ng-deep .inactividad-dialog-panel .inactividad-accept-btn {
+  background-color: var(--red-primary) !important;
+  color: var(--text-on-red) !important;
+  box-shadow: 0 2px 4px var(--shadow-color) !important;
+
+  &:hover {
+    background-color: var(--red-dark) !important;
+  }
+}
+
 /* ══════════════════════════════════════════════════════════
    PAGINADOR (Angular Material) — sigue al tema activo
    ══════════════════════════════════════════════════════════ */
