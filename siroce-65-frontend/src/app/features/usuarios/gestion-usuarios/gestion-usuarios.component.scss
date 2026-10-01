@@ -105,7 +105,7 @@ $avatar-bg     : rgba(198, 40, 40, 0.18);
     .mat-mdc-cell { border-bottom: 1px solid $border-color !important; color: $text-primary; font-size: 14px; }
     &.row-inactive .mat-mdc-cell { opacity: 0.5; }
   }
-  .col-num { width: 48px; max-width: 48px; }
+  .col-num { width: 55px; min-width: 50px; max-width: 55px; overflow: visible; text-overflow: clip; white-space: nowrap; }
   .col-acciones { width: 96px; text-align: right; }
 }
 

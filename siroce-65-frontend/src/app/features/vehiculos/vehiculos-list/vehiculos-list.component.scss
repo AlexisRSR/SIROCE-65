@@ -183,7 +183,7 @@ $text-secondary: var(--text-dim);
     }
   }
 
-  .col-num      { width: 48px;  max-width: 48px; }
+  .col-num      { width: 55px; min-width: 50px; max-width: 55px; overflow: visible; text-overflow: clip; white-space: nowrap; }
   .col-km       { width: 130px; }
   .col-acciones { width: 96px;  text-align: right; }
 }

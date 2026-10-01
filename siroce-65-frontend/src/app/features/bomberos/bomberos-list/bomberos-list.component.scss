@@ -258,7 +258,7 @@ $avatar-bg     : rgba(198, 40, 40, 0.18);
   }
 
   // ── Anchos de columnas específicas ───────────────────────
-  .col-num      { width: 48px;  max-width: 48px; }
+  .col-num      { width: 55px; min-width: 50px; max-width: 55px; overflow: visible; text-overflow: clip; white-space: nowrap; }
   .col-acciones { width: 96px;  text-align: right; }
 
   // Columna EDAD — angosta y centrada, para que no quede flotando

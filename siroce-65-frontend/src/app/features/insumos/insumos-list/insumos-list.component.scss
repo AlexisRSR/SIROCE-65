@@ -97,7 +97,7 @@ $text-dim      : var(--text-dim);
     &:hover { background-color: $row-hover !important; }
     .mat-mdc-cell { border-bottom: 1px solid $border !important; color: $text-primary; }
   }
-  .col-num      { width: 48px; max-width: 48px; }
+  .col-num      { width: 55px; min-width: 50px; max-width: 55px; overflow: visible; text-overflow: clip; white-space: nowrap; }
   .col-stock    { width: 100px; }
   .col-acciones { width: 96px; text-align: right; }
 }

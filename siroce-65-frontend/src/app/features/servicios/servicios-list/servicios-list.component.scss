@@ -141,7 +141,7 @@ $text-dim      : var(--text-dim);
     .mat-mdc-cell { border-bottom: 1px solid $border !important; color: $text-primary; }
   }
 
-  .col-num      { width: 70px; min-width: 70px; max-width: 70px; white-space: nowrap; }
+  .col-num      { width: 70px; min-width: 70px; max-width: 70px; white-space: nowrap; overflow: visible; text-overflow: clip; }
   .col-fecha    { width: 145px; }
   .col-acciones { width: 96px; text-align: right; }
 }
