@@ -8,10 +8,14 @@ const { sequelize } = require('../config/database.js');
 const { registrarBitacora } = require('../helpers/bitacoraHelper');
 
 // ── Helpers de validación (evitan duplicar lógica y bajan la complejidad cognitiva) ────────
-// Traduce el campo que chocó en un SequelizeUniqueConstraintError a un mensaje legible
+// Traduce el campo que chocó en un SequelizeUniqueConstraintError a un mensaje legible.
+// MySQL puede reportar el nombre de la columna (dpi, nombre_usuario) o el nombre
+// del índice único (uq_persona_dpi, uq_usuario_usr) según el driver y la versión;
+// por eso se usa .includes() en minúsculas en vez de una comparación estricta (===).
 const mensajeErrorCampoUnico = (campo) => {
-  if (campo === 'nombre_usuario') return 'El nombre de usuario ingresado ya existe en el sistema.';
-  if (campo === 'DPI') return 'El DPI ingresado ya existe en el sistema.';
+  const campoNormalizado = (campo || '').toLowerCase();
+  if (campoNormalizado.includes('dpi')) return 'El DPI ingresado ya existe en el sistema.';
+  if (campoNormalizado.includes('usuario') || campoNormalizado.includes('usr')) return 'El nombre de usuario ingresado ya existe en el sistema.';
   return 'El dato ingresado ya existe en el sistema.';
 };
 

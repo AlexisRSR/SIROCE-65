@@ -20,10 +20,12 @@ const Usuario = sequelize.define(
     },
 
     // nombre_usuario VARCHAR(50) NOT NULL UNIQUE
+    // unique nombrado para que coincida con el índice real de MySQL (uq_usuario_usr);
+    // así Sequelize reporta el mismo nombre en error.errors[].path al chocar la restricción.
     nombre_usuario: {
       type     : DataTypes.STRING(50),
       allowNull: false,
-      unique   : true,
+      unique   : 'uq_usuario_usr',
     },
 
     // password VARCHAR(255) NOT NULL  ← Hash BCrypt

@@ -37,9 +37,12 @@ const Persona = sequelize.define(
     },
 
     // DPI VARCHAR(20) — Documento Personal de Identificación (Guatemala)
+    // unique nombrado para que coincida con el índice real de MySQL (uq_persona_dpi);
+    // así Sequelize reporta el mismo nombre en error.errors[].path al chocar la restricción.
     DPI: {
       type     : DataTypes.STRING(20),
       allowNull: true,
+      unique   : 'uq_persona_dpi',
     },
 
     // FECHA_NACIMIENTO DATE — DATEONLY mapea a DATE en MySQL (sin hora)
