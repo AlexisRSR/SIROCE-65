@@ -461,6 +461,16 @@ const cambiarEstadoOperativo = async (req, res) => {
     if (!servicio) return fail(res, `Servicio no encontrado.`, 404);
 
     if (accion === 'SALIDA') {
+      // 🔒 Regla de unidad mínima: no se puede despachar sin al menos un vehículo y un bombero asignados
+      const [totalVehiculos, totalBomberos] = await Promise.all([
+        DetalleVehiculo.count({ where: { id_emergencia: idServicio } }),
+        DetalleBombero.count({ where: { id_emergencia: idServicio } }),
+      ]);
+
+      if (totalVehiculos === 0 || totalBomberos === 0) {
+        return res.status(400).json({ msg: 'Validación fallida: Debe asignar al menos un vehículo y un piloto para despachar la emergencia.' });
+      }
+
       await Servicio.sequelize.query(
         `UPDATE TB_SERVICIOS SET HORA_SALIDA = NOW() WHERE ID_SERVICIO = :idServicio`,
         { replacements: { idServicio } }
