@@ -281,14 +281,10 @@ export class EstadisticasDashboardComponent implements OnInit {
             ];
             this.barOptions.xaxis = { categories: categoriasFechas };
           }
-          // 5. Barras Zonas de Riesgo (Con datos de muestra si el backend no los manda aún)
-          if (res.data.graficoZonas && res.data.graficoZonas.length > 0) {
-            this.barZonasOptions.series = [{ name: 'Incidentes', data: res.data.graficoZonas.map((z: any) => z.cantidad) }];
-            this.barZonasOptions.xaxis = { categories: res.data.graficoZonas.map((z: any) => z.zona) };
-          } else {
-            this.barZonasOptions.series = [{ name: 'Incidentes', data: [14, 9, 6, 4, 2] }];
-            this.barZonasOptions.xaxis = { categories: ['Centro', 'Caserío El Nance', 'Ruta CA-2', 'Colonia Mariscal', 'Mercado'] };
-          }
+          // 5. Barras Zonas de Riesgo (vacío si el backend no devuelve zonas)
+          const zonas = res.data.graficoZonas || [];
+          this.barZonasOptions.series = [{ name: 'Incidentes', data: zonas.map((z: any) => z.cantidad) }];
+          this.barZonasOptions.xaxis = { categories: zonas.map((z: any) => z.zona) };
 
           // Logística
           this.estadoFuerza = res.data.estadoFuerza || [];
